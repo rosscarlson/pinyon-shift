@@ -210,9 +210,9 @@ cells = ["yes", "yes", "yes: Cmd shortcuts for the F-keys", "n/a"]
 feature = "Racing wheels"
 link = "playing.md#controllers"
 cells = [
-  "not yet: [#337](https://github.com/arcanite24/pinyon-shift/issues/337)",
-  "not yet: [#337](https://github.com/arcanite24/pinyon-shift/issues/337)",
-  "not yet: [#337](https://github.com/arcanite24/pinyon-shift/issues/337)",
+  "experimental: [#337](https://github.com/arcanite24/pinyon-shift/issues/337)",
+  "experimental: [#337](https://github.com/arcanite24/pinyon-shift/issues/337)",
+  "experimental: [#337](https://github.com/arcanite24/pinyon-shift/issues/337)",
   "not yet: [#337](https://github.com/arcanite24/pinyon-shift/issues/337)",
 ]
 

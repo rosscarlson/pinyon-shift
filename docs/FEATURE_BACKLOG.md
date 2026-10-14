@@ -178,9 +178,20 @@ loaded as `Game:\Media\ControllerFFB.ini`, with `CSteeringWheelFilter` and
 `CCarPresentationSetSteeringWheelAngle` in the image. Its output is two
 16-bit motor values.
 
-**What exists.** Only the XInput backend passes a device's real subtype
-(`xinput_input_driver.cpp:175-176`); SDL, keyboard and null drivers report 1.
-No DirectInput, SDL joystick or SDL haptic code exists.
+**What exists.** The XInput backend passes a device's real subtype
+(`xinput_input_driver.cpp:175-176`). The SDL driver opens a wheel base raw
+(an SDL joystick, not a gamepad) and reports one guest wheel: subtype 2 with
+the force-feedback flag, steering on the left stick X, throttle on the right
+trigger, brake on the left trigger, the clutch pedal as a button (LB by
+default), and buttons and hats mapped through `wheel_buttons`. Pedals and
+buttons may come from other USB devices (a separate pedal set or shifter),
+named in each binding. Force feedback goes through SDL haptics, now built in:
+the two motor values become a constant force on `SDL_HAPTIC_STEERING_AXIS`
+(right minus left, `wheel_ffb_mode = "difference"`), or rumble for bases
+without constant force, plus an optional host spring. The binding and force
+math is unit tested (`wheel_mapping_test.cpp`); none of it has met a wheel
+or the guest's wheel path yet, so FB-2.1 still decides whether "difference"
+is the right reading of the motors.
 
 Gate: on at least two wheel brands, the guest sees a wheel, uses its wheel
 steering, and FFB follows the car (centring at speed, lightening on rear
@@ -190,9 +201,9 @@ unchanged.
 | ID | Item | Effort | Status |
 | --- | --- | --- | --- |
 | FB-2.1 | **Guest wheel contract.** Report subtype 2 with the FFB flag from a test driver and trace `sub_8310C968`, the +4 and +4244 flags, which steering and filter path engages, and what the two motor values mean under a wheel (constant force? spring?). Check whether the ordinal-442 stub zeroes output. | S-M | Not started |
-| FB-2.2 | **Wheel driver.** SDL3 joystick (not gamepad) devices with a wheel or user-chosen profile: steering, separate throttle, brake and clutch axes, H-pattern and sequential shifter buttons, mapped onto the guest's wheel state with subtype 2. DirectInput only if SDL misses devices FB-2.4 needs. | M | Not started |
-| FB-2.3 | **Force feedback.** Translate the guest's motor values into an SDL haptic constant-force effect on `SDL_HAPTIC_STEERING_AXIS`, with host spring and damper scaled by the values in `ControllerFFB.ini`. Then decide whether to recreate the ini's model host-side from the car's self-aligning torque (L). | M-L | Not started |
-| FB-2.4 | **Settings.** A WHEEL page in F6: rotation, steering linearity and deadzone, pedal curves and inversion, combined or separate pedals, FFB gain and centring, a calibration step, and per-device profiles. | S-M | Not started |
+| FB-2.2 | **Wheel driver.** SDL3 joystick (not gamepad) devices with a wheel or user-chosen profile: steering, separate throttle, brake and clutch axes, H-pattern and sequential shifter buttons, mapped onto the guest's wheel state with subtype 2. DirectInput only if SDL misses devices FB-2.4 needs. | M | In part: SDK driver and `wheel_*` cvars; untested on hardware |
+| FB-2.3 | **Force feedback.** Translate the guest's motor values into an SDL haptic constant-force effect on `SDL_HAPTIC_STEERING_AXIS`, with host spring and damper scaled by the values in `ControllerFFB.ini`. Then decide whether to recreate the ini's model host-side from the car's self-aligning torque (L). | M-L | In part: constant force (right minus left motor), rumble fallback and host spring; the motor semantics wait on FB-2.1 |
+| FB-2.4 | **Settings.** A WHEEL page in F6: rotation, steering linearity and deadzone, pedal curves and inversion, combined or separate pedals, FFB gain and centring, a calibration step, and per-device profiles. | S-M | In part: CONTROLS has force feedback strength and mode, direction, steering sensitivity and centring; bindings are cvars, and `wheel_log_inputs` logs axis and button numbers |
 | FB-2.5 | **Device matrix.** Logitech (G29/G920/G923), Thrustmaster (T300/T150/TMX), Fanatec, Moza; Windows and Linux (kernel quirks such as Moza's FIX_WHEEL_DIRECTION). Record each in a tested-hardware table. Closes GH-9 and #337. | M | Needs a person |
 
 ### FB-3 Controller extras (S-M)

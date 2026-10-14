@@ -1438,6 +1438,27 @@ std::unique_ptr<MenuScreen> SettingsPages::Controls() {
                           {"50%", {{"pad_rumble_strength", "50"}}},
                           {"75%", {{"pad_rumble_strength", "75"}}},
                           {"100%", {{"pad_rumble_strength", "100"}}}}));
+  // Racing wheels (FB-2). Bindings for pedals and buttons are cvars
+  // (wheel_throttle, wheel_brake, wheel_clutch, wheel_buttons) until the
+  // WHEEL page with a capture step (FB-2.4) exists.
+  rows.push_back(Setting("WHEEL FORCE FEEDBACK",
+                         {{"OFF", {{"wheel_ffb_mode", "\"off\""}}},
+                          {"25%", {{"wheel_ffb_mode", "\"difference\""}, {"wheel_ffb_strength", "25"}}},
+                          {"50%", {{"wheel_ffb_mode", "\"difference\""}, {"wheel_ffb_strength", "50"}}},
+                          {"75%", {{"wheel_ffb_mode", "\"difference\""}, {"wheel_ffb_strength", "75"}}},
+                          {"100%", {{"wheel_ffb_mode", "\"difference\""}, {"wheel_ffb_strength", "100"}}},
+                          {"RUMBLE", {{"wheel_ffb_mode", "\"rumble\""}}}}));
+  rows.push_back(Toggle("REVERSE WHEEL FORCES", "wheel_ffb_invert"));
+  std::vector<Choice> steering;
+  for (const char* value : {"50", "75", "100", "150", "200", "300", "450"}) {
+    steering.push_back({std::string(value) + "%", {{"wheel_steering_scale", value}}});
+  }
+  rows.push_back(Setting("WHEEL STEERING", std::move(steering)));
+  rows.push_back(Setting("WHEEL CENTRING",
+                         {{"OFF", {{"wheel_ffb_centering", "0"}}},
+                          {"10%", {{"wheel_ffb_centering", "10"}}},
+                          {"25%", {{"wheel_ffb_centering", "25"}}},
+                          {"50%", {{"wheel_ffb_centering", "50"}}}}));
   rows.push_back(Toggle("MOUSE AND KEYBOARD", "mnk_mode"));
   rows.push_back(Setting("MOUSE",
                          {{"OFF", {{"mnk_mouse", "false"}, {"mnk_mouse_steering", "false"}}},
