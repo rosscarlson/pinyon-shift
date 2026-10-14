@@ -52,6 +52,12 @@
             <DockPanel Grid.Row="0" LastChildFill="False">
                 <Image DockPanel.Dock="Left" Source="Branding/logo-light.png" Height="22" Margin="28,0,0,0"
                        VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
+                <!-- Which ShiftGlue source this launcher builds: the racing wheel fork or stock. -->
+                <Border x:Name="WheelBadge" DockPanel.Dock="Left" Margin="16,0,0,0" Padding="10,3"
+                        CornerRadius="11" BorderThickness="1" VerticalAlignment="Center" Visibility="Collapsed"
+                        WindowChrome.IsHitTestVisibleInChrome="True" ToolTipService.InitialShowDelay="200">
+                    <TextBlock x:Name="WheelBadgeText" FontFamily="Bahnschrift SemiBold" FontSize="12"/>
+                </Border>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top"
                             WindowChrome.IsHitTestVisibleInChrome="True">
                     <Button Style="{StaticResource CaptionButton}" Click="MinimizeButton_Click"

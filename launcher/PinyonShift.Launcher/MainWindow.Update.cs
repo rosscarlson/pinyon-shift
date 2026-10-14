@@ -33,7 +33,8 @@ public partial class MainWindow
 
     private async Task CheckForUpdateAsync()
     {
-        if (_updateChecked || !CanUpdate || !LauncherUpdate.CheckEnabled) return;
+        // A racing wheel build never offers the upstream release: it would replace the wheel source.
+        if (_updateChecked || !CanUpdate || !LauncherUpdate.CheckEnabled || _isWheelBuild) return;
         _updateChecked = true;
         try
         {

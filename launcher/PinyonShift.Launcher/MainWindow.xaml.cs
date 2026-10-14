@@ -205,6 +205,67 @@ public partial class MainWindow : Window
                 VersionRun.Text = $"Pinyon Shift {version}";
         }
         catch (Exception ex) when (ex is IOException or JsonException or KeyNotFoundException or InvalidOperationException) { }
+        ShowWheelBuild();
+    }
+
+    // Racing wheel build: the source beside this launcher pins the rosscarlson/shiftglue-sdk
+    // fork with the wheel driver and force feedback. The badge reads that pin from the source
+    // itself, so it can't say "wheel build" while building the stock SDK.
+    private const string WheelSdkRepository = "rosscarlson/shiftglue-sdk";
+    private bool _isWheelBuild;
+
+    private void ShowWheelBuild()
+    {
+        if (_repositoryRoot is null) return;
+        string repository = "", revision = "";
+        try
+        {
+            using var toolchain = JsonDocument.Parse(File.ReadAllText(Path.Combine(_repositoryRoot, "config", "release-toolchain.json")));
+            var rexglue = toolchain.RootElement.GetProperty("rexglue");
+            repository = rexglue.GetProperty("repository").GetString() ?? "";
+            revision = rexglue.GetProperty("revision").GetString() ?? "";
+        }
+        catch (Exception ex) when (ex is IOException or JsonException or KeyNotFoundException or InvalidOperationException) { }
+        string built = BuiltSdkRevision();
+        string Short(string sha) => sha.Length >= 7 ? sha[..7] : sha;
+        _isWheelBuild = repository.Contains(WheelSdkRepository, StringComparison.OrdinalIgnoreCase);
+        if (_isWheelBuild)
+        {
+            Title = "Pinyon Shift - Racing Wheel Build";
+            WheelBadgeText.Text = $"RACING WHEEL BUILD · SDK {Short(revision)}";
+            WheelBadge.Background = new SolidColorBrush(Color.FromArgb(0x33, 0x3D, 0xDC, 0x84));
+            WheelBadge.BorderBrush = (Brush)FindResource("GreenBrush");
+            WheelBadgeText.Foreground = (Brush)FindResource("GreenBrush");
+            VersionRun.Text += $" · Racing wheel build (SDK {Short(revision)})";
+        }
+        else
+        {
+            WheelBadgeText.Text = "STOCK SOURCE · NOT THE WHEEL BUILD";
+            WheelBadge.Background = new SolidColorBrush(Color.FromArgb(0x33, 0xE5, 0x48, 0x4D));
+            WheelBadge.BorderBrush = (Brush)FindResource("RedBrush");
+            WheelBadgeText.Foreground = (Brush)FindResource("RedBrush");
+        }
+        WheelBadge.ToolTip =
+            $"ShiftGlue source: {(repository.Length > 0 ? repository : "unknown")} @ {Short(revision)}\n" +
+            $"Game last built with: {(built.Length > 0 ? Short(built) : "not built yet")}" +
+            (built.Length > 0 && revision.Length > 0 && !built.Equals(revision, StringComparison.OrdinalIgnoreCase)
+                ? "\nThe built game is older than this source: build again." : "") +
+            (_isWheelBuild ? "" : "\nPut the racing wheel pinyon-shift-source.zip beside this launcher.");
+        WheelBadge.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>The ShiftGlue revision checked out for the last build (.local/rexglue), if any.</summary>
+    private string BuiltSdkRevision()
+    {
+        if (_repositoryRoot is null) return "";
+        try
+        {
+            string head = Path.Combine(_repositoryRoot, ".local", "rexglue", ".git", "HEAD");
+            if (!File.Exists(head)) return "";
+            string text = File.ReadAllText(head).Trim();
+            return text.StartsWith("ref:", StringComparison.Ordinal) ? "" : text;
+        }
+        catch (IOException) { return ""; }
     }
 
     private async void ChooseInstallRootButton_Click(object sender, RoutedEventArgs e)
