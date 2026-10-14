@@ -1441,13 +1441,20 @@ std::unique_ptr<MenuScreen> SettingsPages::Controls() {
   // Racing wheels (FB-2). Bindings for pedals and buttons are cvars
   // (wheel_throttle, wheel_brake, wheel_clutch, wheel_buttons) until the
   // WHEEL page with a capture step (FB-2.4) exists.
+  // How the title's two motor values become a steering force; FB-2.1's
+  // trace (RECORD WHEEL FFB) shows which reading matches the title.
   rows.push_back(Setting("WHEEL FORCE FEEDBACK",
                          {{"OFF", {{"wheel_ffb_mode", "\"off\""}}},
-                          {"25%", {{"wheel_ffb_mode", "\"difference\""}, {"wheel_ffb_strength", "25"}}},
-                          {"50%", {{"wheel_ffb_mode", "\"difference\""}, {"wheel_ffb_strength", "50"}}},
-                          {"75%", {{"wheel_ffb_mode", "\"difference\""}, {"wheel_ffb_strength", "75"}}},
-                          {"100%", {{"wheel_ffb_mode", "\"difference\""}, {"wheel_ffb_strength", "100"}}},
+                          {"RIGHT - LEFT", {{"wheel_ffb_mode", "\"difference\""}}},
+                          {"LEFT MOTOR", {{"wheel_ffb_mode", "\"left-signed\""}}},
+                          {"RIGHT MOTOR", {{"wheel_ffb_mode", "\"right-signed\""}}},
                           {"RUMBLE", {{"wheel_ffb_mode", "\"rumble\""}}}}));
+  rows.push_back(Setting("WHEEL FFB STRENGTH",
+                         {{"10%", {{"wheel_ffb_strength", "10"}}},
+                          {"25%", {{"wheel_ffb_strength", "25"}}},
+                          {"50%", {{"wheel_ffb_strength", "50"}}},
+                          {"75%", {{"wheel_ffb_strength", "75"}}},
+                          {"100%", {{"wheel_ffb_strength", "100"}}}}));
   rows.push_back(Toggle("REVERSE WHEEL FORCES", "wheel_ffb_invert"));
   std::vector<Choice> steering;
   for (const char* value : {"50", "75", "100", "150", "200", "300", "450"}) {
@@ -1459,6 +1466,7 @@ std::unique_ptr<MenuScreen> SettingsPages::Controls() {
                           {"10%", {{"wheel_ffb_centering", "10"}}},
                           {"25%", {{"wheel_ffb_centering", "25"}}},
                           {"50%", {{"wheel_ffb_centering", "50"}}}}));
+  rows.push_back(Toggle("RECORD WHEEL FFB", "wheel_ffb_trace"));
   rows.push_back(Toggle("MOUSE AND KEYBOARD", "mnk_mode"));
   rows.push_back(Setting("MOUSE",
                          {{"OFF", {{"mnk_mouse", "false"}, {"mnk_mouse_steering", "false"}}},

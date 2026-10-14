@@ -191,7 +191,11 @@ the two motor values become a constant force on `SDL_HAPTIC_STEERING_AXIS`
 without constant force, plus an optional host spring. The binding and force
 math is unit tested (`wheel_mapping_test.cpp`); none of it has met a wheel
 or the guest's wheel path yet, so FB-2.1 still decides whether "difference"
-is the right reading of the motors.
+is the right reading of the motors. `left-signed` and `right-signed` read
+one motor alone as offset binary (0x8000 no force) for the case the trace
+shows that encoding instead. `XamInputGetUserVibrationLevel` (ordinal 442)
+reports 3, the profile's "vibration on"; the stub had left the title's
+output word unwritten.
 
 Gate: on at least two wheel brands, the guest sees a wheel, uses its wheel
 steering, and FFB follows the car (centring at speed, lightening on rear
@@ -200,7 +204,7 @@ unchanged.
 
 | ID | Item | Effort | Status |
 | --- | --- | --- | --- |
-| FB-2.1 | **Guest wheel contract.** Report subtype 2 with the FFB flag from a test driver and trace `sub_8310C968`, the +4 and +4244 flags, which steering and filter path engages, and what the two motor values mean under a wheel (constant force? spring?). Check whether the ordinal-442 stub zeroes output. | S-M | Not started |
+| FB-2.1 | **Guest wheel contract.** Report subtype 2 with the FFB flag from a test driver and trace `sub_8310C968`, the +4 and +4244 flags, which steering and filter path engages, and what the two motor values mean under a wheel (constant force? spring?). Check whether the ordinal-442 stub zeroes output. | S-M | In part: ordinal 442 now writes level 3 (profile vibration on) instead of leaving it unwritten; `wheel_ffb_trace` writes every XamInputSetState (raw motors, guest caller, steering, pedals, host force) and each capability answer to a CSV, so the motor meaning comes from a recorded drive. Needs that drive |
 | FB-2.2 | **Wheel driver.** SDL3 joystick (not gamepad) devices with a wheel or user-chosen profile: steering, separate throttle, brake and clutch axes, H-pattern and sequential shifter buttons, mapped onto the guest's wheel state with subtype 2. DirectInput only if SDL misses devices FB-2.4 needs. | M | In part: SDK driver and `wheel_*` cvars; untested on hardware |
 | FB-2.3 | **Force feedback.** Translate the guest's motor values into an SDL haptic constant-force effect on `SDL_HAPTIC_STEERING_AXIS`, with host spring and damper scaled by the values in `ControllerFFB.ini`. Then decide whether to recreate the ini's model host-side from the car's self-aligning torque (L). | M-L | In part: constant force (right minus left motor), rumble fallback and host spring; the motor semantics wait on FB-2.1 |
 | FB-2.4 | **Settings.** A WHEEL page in F6: rotation, steering linearity and deadzone, pedal curves and inversion, combined or separate pedals, FFB gain and centring, a calibration step, and per-device profiles. | S-M | In part: CONTROLS has force feedback strength and mode, direction, steering sensitivity and centring; bindings are cvars, and `wheel_log_inputs` logs axis and button numbers |
