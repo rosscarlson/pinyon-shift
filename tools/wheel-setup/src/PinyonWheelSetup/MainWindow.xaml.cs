@@ -551,6 +551,12 @@ public partial class MainWindow : Window
         loadingUi = true;
         FfbModeBox.SelectedIndex = Math.Max(0, Array.IndexOf(BindingSet.FfbModes, set.FfbMode));
         StrengthSlider.Value = set.FfbStrength;
+        MinForceSlider.Value = set.FfbMinForce;
+        SpringSlider.Value = set.FfbSpring;
+        DamperSlider.Value = set.FfbDamper;
+        FrictionSlider.Value = set.FfbFriction;
+        InertiaSlider.Value = set.FfbInertia;
+        Wheel900Box.IsChecked = set.Wheel900;
         FfbInvertBox.IsChecked = set.FfbInvert;
         FfbTraceBox.IsChecked = set.FfbTrace;
         ScaleSlider.Value = set.SteeringScale;
@@ -570,6 +576,12 @@ public partial class MainWindow : Window
         if (loadingUi || !IsLoaded) return;
         set.FfbMode = BindingSet.FfbModes[Math.Max(0, FfbModeBox.SelectedIndex)];
         set.FfbStrength = (int)StrengthSlider.Value;
+        set.FfbMinForce = (int)MinForceSlider.Value;
+        set.FfbSpring = (int)SpringSlider.Value;
+        set.FfbDamper = (int)DamperSlider.Value;
+        set.FfbFriction = (int)FrictionSlider.Value;
+        set.FfbInertia = (int)InertiaSlider.Value;
+        set.Wheel900 = Wheel900Box.IsChecked == true;
         set.FfbInvert = FfbInvertBox.IsChecked == true;
         set.FfbTrace = FfbTraceBox.IsChecked == true;
         set.SteeringScale = (int)ScaleSlider.Value;
@@ -585,6 +597,11 @@ public partial class MainWindow : Window
     private void UpdateTuningText()
     {
         StrengthValue.Text = $"{(int)StrengthSlider.Value} %";
+        MinForceValue.Text = $"{(int)MinForceSlider.Value} %";
+        SpringValue.Text = $"{(int)SpringSlider.Value} %";
+        DamperValue.Text = $"{(int)DamperSlider.Value} %";
+        FrictionValue.Text = $"{(int)FrictionSlider.Value} %";
+        InertiaValue.Text = $"{(int)InertiaSlider.Value} %";
         ScaleValue.Text = $"{(int)ScaleSlider.Value} %";
         SteerDeadzoneValue.Text = $"{(int)SteerDeadzoneSlider.Value} %";
         foreach (var (slider, text) in new[] {
@@ -739,6 +756,9 @@ public partial class MainWindow : Window
             LeftScroll.ScrollToEnd();
             await Task.Delay(300);
             Snap(outDir, "09-pedal-deadzones");
+            LeftScroll.ScrollToVerticalOffset(330);
+            await Task.Delay(300);
+            Snap(outDir, "10-force-feedback");
             log.Add("status: " + StatusText.Text);
             foreach (var item in set.Items) log.Add($"{item.Key}: {item.BindingText}");
         }

@@ -143,6 +143,14 @@ public sealed class BindingSet
     public int FfbStrength { get; set; } = 25;
     public bool FfbInvert { get; set; }
     public bool FfbTrace { get; set; }
+    public int FfbMinForce { get; set; }
+    public int FfbSpring { get; set; } = 100;
+    public int FfbDamper { get; set; } = 100;
+    public int FfbFriction { get; set; } = 100;
+    public int FfbInertia { get; set; } = 100;
+    /// <summary>FH1's effect values are bytes (its spring sent coefficient 63, saturation 127).</summary>
+    public int FfbMagnitudeMax { get; set; } = 127;
+    public bool Wheel900 { get; set; } = true;
     public int SteeringScale { get; set; } = 100;
     public int SteeringDeadzone { get; set; }
     public int PedalDeadzone { get; set; } = 3;
@@ -152,7 +160,8 @@ public sealed class BindingSet
         ["THROTTLE"] = (3, 0), ["BRAKE"] = (3, 0), ["CLUTCH"] = (3, 0),
     };
 
-    public static readonly string[] FfbModes = ["difference", "left-signed", "right-signed", "rumble", "off"];
+    // The F6 and setup choices: the game's effects (with motor fallback), rumble only, or off.
+    public static readonly string[] FfbModes = ["difference", "rumble", "off"];
 
     // ----------------------------------------------------------------------------------------
     // Live values
@@ -237,6 +246,13 @@ public sealed class BindingSet
         FfbStrength = Math.Clamp(Int("wheel_ffb_strength", 25), 0, 100);
         FfbInvert = Bool("wheel_ffb_invert", false);
         FfbTrace = Bool("wheel_ffb_trace", false);
+        FfbMinForce = Math.Clamp(Int("wheel_ffb_min_force", 0), 0, 30);
+        FfbSpring = Math.Clamp(Int("wheel_ffb_spring", 100), 0, 200);
+        FfbDamper = Math.Clamp(Int("wheel_ffb_damper", 100), 0, 200);
+        FfbFriction = Math.Clamp(Int("wheel_ffb_friction", 100), 0, 200);
+        FfbInertia = Math.Clamp(Int("wheel_ffb_inertia", 100), 0, 200);
+        FfbMagnitudeMax = Math.Clamp(Int("wheel_ffb_magnitude_max", 127), 1, 1000000);
+        Wheel900 = Bool("wheel_900_degree", true);
         SteeringScale = Math.Clamp(Int("wheel_steering_scale", 100), 10, 1000);
         SteeringDeadzone = Math.Clamp(Int("wheel_steering_deadzone", 0), 0, 50);
         PedalDeadzone = Math.Clamp(Int("wheel_pedal_deadzone", 3), 0, 50);
@@ -401,6 +417,13 @@ public sealed class BindingSet
             ("wheel_ffb_strength", FfbStrength.ToString(CultureInfo.InvariantCulture)),
             ("wheel_ffb_invert", FfbInvert ? "true" : "false"),
             ("wheel_ffb_trace", FfbTrace ? "true" : "false"),
+            ("wheel_ffb_min_force", FfbMinForce.ToString(CultureInfo.InvariantCulture)),
+            ("wheel_ffb_spring", FfbSpring.ToString(CultureInfo.InvariantCulture)),
+            ("wheel_ffb_damper", FfbDamper.ToString(CultureInfo.InvariantCulture)),
+            ("wheel_ffb_friction", FfbFriction.ToString(CultureInfo.InvariantCulture)),
+            ("wheel_ffb_inertia", FfbInertia.ToString(CultureInfo.InvariantCulture)),
+            ("wheel_ffb_magnitude_max", FfbMagnitudeMax.ToString(CultureInfo.InvariantCulture)),
+            ("wheel_900_degree", Wheel900 ? "true" : "false"),
             ("wheel_steering_scale", SteeringScale.ToString(CultureInfo.InvariantCulture)),
             ("wheel_steering_deadzone", SteeringDeadzone.ToString(CultureInfo.InvariantCulture)),
             ("wheel_pedal_deadzone", PedalDeadzone.ToString(CultureInfo.InvariantCulture)),
