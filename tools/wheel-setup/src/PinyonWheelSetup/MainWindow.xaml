@@ -181,7 +181,7 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                         <TextBlock x:Name="NoDevicesText" Style="{StaticResource SecondaryText}" Visibility="Collapsed"
-                                   Text="No game controllers found. Connect the wheel and start EmuWheel if you use it; the list updates by itself."/>
+                                   Text="No game controllers found. Connect your wheel, pedals and other devices; the list updates by itself."/>
                         <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0"
                                    Text="A device lights up green while you move it, so you can tell which is which."/>
                     </StackPanel>
@@ -193,7 +193,7 @@
                         <TextBlock Text="Device that receives the forces" Style="{StaticResource SecondaryText}" Margin="0,0,0,4"/>
                         <DockPanel>
                             <Button x:Name="TestButton" DockPanel.Dock="Right" Margin="8,0,0,0" Click="TestFfb_Click"
-                                    ToolTip="A gentle 15 % push one way, then the other">
+                                    ToolTip="Pulls the wheel LEFT, then RIGHT, gently (15 %)">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="&#xE768;" FontFamily="{StaticResource IconFont}" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0"/>
                                     <TextBlock Text="Test" VerticalAlignment="Center"/>
@@ -203,7 +203,7 @@
                         </DockPanel>
                         <TextBlock x:Name="FfbTestText" Style="{StaticResource SecondaryText}" Margin="0,6,0,0" Visibility="Collapsed"/>
                         <TextBlock Style="{StaticResource SecondaryText}" Margin="0,6,0,12"
-                                   Text="Pick your wheel base (with EmuWheel, the vJoy device). A base can appear twice; if Test does not move the wheel, pick the other entry."/>
+                                   Text="Pick your wheel base. Test pulls the wheel LEFT, then RIGHT. If it pulls right first, tick Reverse force direction. A base can appear twice; if Test does not move the wheel, pick the other entry."/>
 
                         <TextBlock Text="Force feedback" Style="{StaticResource SecondaryText}" Margin="0,0,0,4"/>
                         <ComboBox x:Name="FfbModeBox" SelectionChanged="Tuning_Changed">
