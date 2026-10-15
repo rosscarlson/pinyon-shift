@@ -89,6 +89,7 @@ public partial class MainWindow : Window
         }
         Log.Write($"config in use: {configPath ?? "(none)"}");
         LoadConfig();
+        foreach (var key in Cards.Keys) SetCardExpanded(key, settings.ExpandedCards.GetValueOrDefault(key), save: false);
         timer.Tick += (_, _) => Tick();
         timer.Start();
         if (selfTest) await RunSelfTestAsync(args[2]);
@@ -133,13 +134,14 @@ public partial class MainWindow : Window
         set.Load(configValues, devices.Devices);
         dirty = false;
         UiFromSet();
+        UpdateCardSummaries();
         RefreshFfbChoices();
         UpdateStatus();
     }
 
     private void OnDevicesChanged()
     {
-        DeviceCount.Text = devices.Devices.Count.ToString();
+        DeviceCount.Text = devices.Devices.Count == 1 ? "1 device" : $"{devices.Devices.Count} devices";
         NoDevicesText.Visibility = devices.Devices.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         // Devices can arrive after the config was read; resolve its bindings again while nothing was changed.
         if (!dirty && capture == null) set.Load(configValues, devices.Devices);
@@ -638,8 +640,51 @@ public partial class MainWindow : Window
         UpdateStatus();
     }
 
+    // -----------------------------------------------------------------------------------------
+    // Collapsible cards
+
+    private Dictionary<string, (FrameworkElement Body, TextBlock Chevron)> Cards => new()
+    {
+        ["config"] = (ConfigBody, ConfigChevron),
+        ["devices"] = (DevicesBody, DevicesChevron),
+        ["ffb"] = (FfbBody, FfbChevron),
+        ["steering"] = (SteeringBody, SteeringChevron),
+    };
+
+    private void CardToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not string key || !Cards.TryGetValue(key, out var card)) return;
+        SetCardExpanded(key, card.Body.Visibility != Visibility.Visible, save: true);
+    }
+
+    private void SetCardExpanded(string key, bool expanded, bool save)
+    {
+        if (!Cards.TryGetValue(key, out var card)) return;
+        card.Body.Visibility = expanded ? Visibility.Visible : Visibility.Collapsed;
+        card.Chevron.Text = expanded ? "\uE70E" : "\uE70D";  // chevron up / down
+        if (!save || selfTest) return;
+        settings.ExpandedCards[key] = expanded;
+        settings.Save();
+    }
+
+    /// <summary>What each collapsed card's header shows.</summary>
+    private void UpdateCardSummaries()
+    {
+        bool found = configPath != null && File.Exists(configPath);
+        ConfigSummary.Text = found ? "Found" : "Not found";
+        ConfigSummary.SetResourceReference(TextBlock.ForegroundProperty, found ? "TextSecondaryBrush" : "ErrorTextBrush");
+        FfbSummary.Text = set.FfbMode switch
+        {
+            "off" => "Off",
+            "rumble" => "Rumble only",
+            _ => $"On · {set.FfbStrength} %" + (set.FfbInvert ? " · reversed" : ""),
+        };
+        SteeringSummary.Text = set.Wheel900 ? "900°" : "speed-sensitive";
+    }
+
     private void UpdateTuningText()
     {
+        UpdateCardSummaries();
         StrengthValue.Text = $"{(int)StrengthSlider.Value} %";
         MinForceValue.Text = $"{(int)MinForceSlider.Value} %";
         SpringValue.Text = $"{(int)SpringSlider.Value} %";
@@ -724,6 +769,7 @@ public partial class MainWindow : Window
             LoadConfig();
             await Task.Delay(300);
             Snap(outDir, "01-start");
+            foreach (var key in Cards.Keys) SetCardExpanded(key, true, save: false);
 
             Guided_Click(this, new RoutedEventArgs());
             await Task.Delay(300);

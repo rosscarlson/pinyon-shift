@@ -10,6 +10,36 @@
         Closed="Window_Closed">
 
     <Window.Resources>
+        <!-- A card's header that collapses and expands it -->
+        <Style x:Key="CardToggle" TargetType="Button">
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid Background="Transparent">
+                            <Border x:Name="Overlay" CornerRadius="4" Margin="-6,-4" Background="{DynamicResource OverlayBrush}" Opacity="0"/>
+                            <Border x:Name="Focus" CornerRadius="4" Margin="-6,-4" BorderThickness="1" BorderBrush="Transparent"/>
+                            <ContentPresenter HorizontalAlignment="Stretch"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Overlay" Property="Opacity" Value="0.06"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Overlay" Property="Opacity" Value="0.12"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Focus" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Storyboard x:Key="PulseStoryboard" RepeatBehavior="Forever" AutoReverse="True">
             <DoubleAnimation Storyboard.TargetProperty="Opacity" From="1" To="0.3" Duration="0:0:0.7"/>
         </Storyboard>
@@ -136,24 +166,43 @@
 
                 <Border Style="{StaticResource Card}">
                     <StackPanel>
-                        <DockPanel Margin="0,0,0,10">
-                            <Button DockPanel.Dock="Right" Content="Browse…" Click="Browse_Click"/>
-                            <TextBlock Text="Game config" Style="{StaticResource CardHeader}" Margin="0" VerticalAlignment="Center"/>
+                        <Button Style="{StaticResource CardToggle}" Tag="config" Click="CardToggle_Click"
+                                AutomationProperties.Name="Game config">
+                            <DockPanel>
+                                <TextBlock x:Name="ConfigChevron" DockPanel.Dock="Right" Text="&#xE70D;" FontFamily="{StaticResource IconFont}"
+                                           FontSize="12" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                <TextBlock x:Name="ConfigSummary" DockPanel.Dock="Right" Style="{StaticResource SecondaryText}"
+                                           TextWrapping="NoWrap" VerticalAlignment="Center"/>
+                                <TextBlock Text="Game config" Style="{StaticResource CardHeader}" Margin="0" VerticalAlignment="Center"/>
+                            </DockPanel>
+                        </Button>
+                        <StackPanel x:Name="ConfigBody" Margin="0,12,0,0" Visibility="Collapsed">
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Content="Browse…" Click="Browse_Click" Margin="10,0,0,0" VerticalAlignment="Top"/>
+                            <TextBlock x:Name="ConfigPathText" TextWrapping="Wrap" FontSize="12" VerticalAlignment="Center"/>
                         </DockPanel>
-                        <TextBlock x:Name="ConfigPathText" TextWrapping="Wrap" FontSize="12"/>
                         <TextBlock x:Name="ConfigWarning" Foreground="{DynamicResource ErrorTextBrush}" FontSize="12"
                                    TextWrapping="Wrap" Margin="0,6,0,0" Visibility="Collapsed"/>
                         <TextBlock Style="{StaticResource SecondaryText}" Margin="0,8,0,0"
                                    Text="pinyon_shift.toml, found where the launcher keeps it. Run the game once first so it exists. Saving keeps a backup."/>
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 
                 <Border Style="{StaticResource Card}">
                     <StackPanel>
-                        <DockPanel Margin="0,0,0,10">
-                            <TextBlock x:Name="DeviceCount" DockPanel.Dock="Right" Style="{StaticResource SecondaryText}" VerticalAlignment="Center"/>
-                            <TextBlock Text="Devices" Style="{StaticResource CardHeader}" Margin="0" VerticalAlignment="Center"/>
-                        </DockPanel>
+                        <Button Style="{StaticResource CardToggle}" Tag="devices" Click="CardToggle_Click"
+                                AutomationProperties.Name="Devices">
+                            <DockPanel>
+                                <TextBlock x:Name="DevicesChevron" DockPanel.Dock="Right" Text="&#xE70D;" FontFamily="{StaticResource IconFont}"
+                                           FontSize="12" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                <TextBlock x:Name="DeviceCount" DockPanel.Dock="Right" Style="{StaticResource SecondaryText}"
+                                           TextWrapping="NoWrap" VerticalAlignment="Center"/>
+                                <TextBlock Text="Devices" Style="{StaticResource CardHeader}" Margin="0" VerticalAlignment="Center"/>
+                            </DockPanel>
+                        </Button>
+                        <StackPanel x:Name="DevicesBody" Margin="0,12,0,0" Visibility="Collapsed">
+
                         <ItemsControl x:Name="DeviceList">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
@@ -184,12 +233,24 @@
                                    Text="No game controllers found. Connect your wheel, pedals and other devices; the list updates by itself."/>
                         <TextBlock Style="{StaticResource SecondaryText}" Margin="0,4,0,0"
                                    Text="A device lights up green while you move it, so you can tell which is which."/>
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 
                 <Border Style="{StaticResource Card}">
                     <StackPanel>
-                        <TextBlock Text="Force feedback" Style="{StaticResource CardHeader}"/>
+                        <Button Style="{StaticResource CardToggle}" Tag="ffb" Click="CardToggle_Click"
+                                AutomationProperties.Name="Force feedback">
+                            <DockPanel>
+                                <TextBlock x:Name="FfbChevron" DockPanel.Dock="Right" Text="&#xE70D;" FontFamily="{StaticResource IconFont}"
+                                           FontSize="12" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                <TextBlock x:Name="FfbSummary" DockPanel.Dock="Right" Style="{StaticResource SecondaryText}"
+                                           TextWrapping="NoWrap" VerticalAlignment="Center"/>
+                                <TextBlock Text="Force feedback" Style="{StaticResource CardHeader}" Margin="0" VerticalAlignment="Center"/>
+                            </DockPanel>
+                        </Button>
+                        <StackPanel x:Name="FfbBody" Margin="0,12,0,0" Visibility="Collapsed">
+
                         <TextBlock Text="Device that receives the forces" Style="{StaticResource SecondaryText}" Margin="0,0,0,4"/>
                         <DockPanel>
                             <Button x:Name="TestButton" DockPanel.Dock="Right" Margin="8,0,0,0" Click="TestFfb_Click"
@@ -264,12 +325,24 @@
                                    Text="Writes ffb-trace-*.csv beside the game's runtime log, to work out how the game's 360 wheel forces map onto your base."/>
                         <TextBlock Style="{StaticResource SecondaryText}" Margin="0,10,0,0"
                                    Text="Start low on a direct-drive base. F6 › CONTROLS in game changes these too."/>
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 
                 <Border Style="{StaticResource Card}">
                     <StackPanel>
-                        <TextBlock Text="Steering and pedals" Style="{StaticResource CardHeader}"/>
+                        <Button Style="{StaticResource CardToggle}" Tag="steering" Click="CardToggle_Click"
+                                AutomationProperties.Name="Steering and pedals">
+                            <DockPanel>
+                                <TextBlock x:Name="SteeringChevron" DockPanel.Dock="Right" Text="&#xE70D;" FontFamily="{StaticResource IconFont}"
+                                           FontSize="12" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                <TextBlock x:Name="SteeringSummary" DockPanel.Dock="Right" Style="{StaticResource SecondaryText}"
+                                           TextWrapping="NoWrap" VerticalAlignment="Center"/>
+                                <TextBlock Text="Steering and pedals" Style="{StaticResource CardHeader}" Margin="0" VerticalAlignment="Center"/>
+                            </DockPanel>
+                        </Button>
+                        <StackPanel x:Name="SteeringBody" Margin="0,12,0,0" Visibility="Collapsed">
+
                         <CheckBox x:Name="Wheel900Box" Content="900° steering (FH1's linear wheel mode)" Margin="0,0,0,4" Click="Tuning_Changed"/>
                         <TextBlock Style="{StaticResource SecondaryText}" Margin="26,0,0,10"
                                    Text="Set your wheel base to 900°. Without it the game cuts steering at speed. Applies from the next game start."/>
@@ -349,6 +422,7 @@
                         </Grid>
                         <TextBlock Style="{StaticResource SecondaryText}" Margin="0,10,0,0"
                                    Text="Sensitivity 200 % reaches full lock at half your wheel's rotation. The live view uses all of these values."/>
+                        </StackPanel>
                     </StackPanel>
                 </Border>
             </StackPanel>
