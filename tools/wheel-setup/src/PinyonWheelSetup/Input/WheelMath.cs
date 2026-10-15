@@ -33,6 +33,19 @@ public static class WheelMath
         return (byte)Math.Clamp(value, 0, 255);
     }
 
+    /// <summary>A pedal with a dead zone at each end (the SDK's two-sided PedalFromAxis).</summary>
+    public static byte PedalFromAxis(short raw, bool inverted, int bottomPercent, int topPercent)
+    {
+        int travel = raw + 32768;
+        if (inverted) travel = 65535 - travel;
+        int bottom = Math.Clamp(bottomPercent, 0, 50) * 65535 / 100;
+        int top = Math.Clamp(topPercent, 0, 50) * 65535 / 100;
+        int span = Math.Max(65535 - bottom - top, 1);
+        if (travel <= bottom) return 0;
+        if (travel >= 65535 - top) return 255;
+        return (byte)Math.Clamp((travel - bottom) * 255 / span, 0, 255);
+    }
+
     /// <summary>The game's device match: "vvvv:pppp", "path:&lt;path&gt;" or a name substring.</summary>
     public static bool DeviceMatches(string match, string name, ushort vendor, ushort product, string path)
     {

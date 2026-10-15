@@ -146,6 +146,11 @@ public sealed class BindingSet
     public int SteeringScale { get; set; } = 100;
     public int SteeringDeadzone { get; set; }
     public int PedalDeadzone { get; set; } = 3;
+    /// <summary>Each pedal's dead zones in percent (wheel_{throttle,brake,clutch}_deadzone_{bottom,top}).</summary>
+    public Dictionary<string, (int Bottom, int Top)> PedalDeadzones { get; } = new()
+    {
+        ["THROTTLE"] = (3, 0), ["BRAKE"] = (3, 0), ["CLUTCH"] = (3, 0),
+    };
 
     public static readonly string[] FfbModes = ["difference", "left-signed", "right-signed", "rumble", "off"];
 
@@ -191,7 +196,9 @@ public sealed class BindingSet
                 }
                 else
                 {
-                    byte p = WheelMath.PedalFromAxis(raw, input.Inverted, item.Kind == BindKind.Pedal ? PedalDeadzone : 0);
+                    var (bottom, top) = item.Kind == BindKind.Pedal && PedalDeadzones.TryGetValue(item.Key, out var dz)
+                        ? dz : (0, 0);
+                    byte p = WheelMath.PedalFromAxis(raw, input.Inverted, bottom, top);
                     value = p / 255.0;
                     pressed = p >= 128;
                     text = item.Kind == BindKind.Pedal ? $"{Math.Round(value * 100)} %" : pressed ? "pressed" : "";
@@ -233,6 +240,12 @@ public sealed class BindingSet
         SteeringScale = Math.Clamp(Int("wheel_steering_scale", 100), 10, 1000);
         SteeringDeadzone = Math.Clamp(Int("wheel_steering_deadzone", 0), 0, 50);
         PedalDeadzone = Math.Clamp(Int("wheel_pedal_deadzone", 3), 0, 50);
+        foreach (var (key, cvar) in new[] { ("THROTTLE", "throttle"), ("BRAKE", "brake"), ("CLUTCH", "clutch") })
+        {
+            int bottom = Int($"wheel_{cvar}_deadzone_bottom", -1);
+            PedalDeadzones[key] = (bottom < 0 ? PedalDeadzone : Math.Clamp(bottom, 0, 50),
+                                   Math.Clamp(Int($"wheel_{cvar}_deadzone_top", 0), 0, 50));
+        }
 
         string wheel = Str("wheel_device", "");
         Device? steer = wheel.Length > 0 ? devices.FirstOrDefault(d => WheelMath.DeviceMatches(wheel, d.Name, d.Vendor, d.Product, d.Path)) : null;
@@ -391,6 +404,12 @@ public sealed class BindingSet
             ("wheel_steering_scale", SteeringScale.ToString(CultureInfo.InvariantCulture)),
             ("wheel_steering_deadzone", SteeringDeadzone.ToString(CultureInfo.InvariantCulture)),
             ("wheel_pedal_deadzone", PedalDeadzone.ToString(CultureInfo.InvariantCulture)),
+            ("wheel_throttle_deadzone_bottom", PedalDeadzones["THROTTLE"].Bottom.ToString(CultureInfo.InvariantCulture)),
+            ("wheel_throttle_deadzone_top", PedalDeadzones["THROTTLE"].Top.ToString(CultureInfo.InvariantCulture)),
+            ("wheel_brake_deadzone_bottom", PedalDeadzones["BRAKE"].Bottom.ToString(CultureInfo.InvariantCulture)),
+            ("wheel_brake_deadzone_top", PedalDeadzones["BRAKE"].Top.ToString(CultureInfo.InvariantCulture)),
+            ("wheel_clutch_deadzone_bottom", PedalDeadzones["CLUTCH"].Bottom.ToString(CultureInfo.InvariantCulture)),
+            ("wheel_clutch_deadzone_top", PedalDeadzones["CLUTCH"].Top.ToString(CultureInfo.InvariantCulture)),
         ];
     }
 }

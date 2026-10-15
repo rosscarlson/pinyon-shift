@@ -555,7 +555,12 @@ public partial class MainWindow : Window
         FfbTraceBox.IsChecked = set.FfbTrace;
         ScaleSlider.Value = set.SteeringScale;
         SteerDeadzoneSlider.Value = set.SteeringDeadzone;
-        PedalDeadzoneSlider.Value = set.PedalDeadzone;
+        ThrottleBottomSlider.Value = set.PedalDeadzones["THROTTLE"].Bottom;
+        ThrottleTopSlider.Value = set.PedalDeadzones["THROTTLE"].Top;
+        BrakeBottomSlider.Value = set.PedalDeadzones["BRAKE"].Bottom;
+        BrakeTopSlider.Value = set.PedalDeadzones["BRAKE"].Top;
+        ClutchBottomSlider.Value = set.PedalDeadzones["CLUTCH"].Bottom;
+        ClutchTopSlider.Value = set.PedalDeadzones["CLUTCH"].Top;
         loadingUi = false;
         UpdateTuningText();
     }
@@ -569,7 +574,9 @@ public partial class MainWindow : Window
         set.FfbTrace = FfbTraceBox.IsChecked == true;
         set.SteeringScale = (int)ScaleSlider.Value;
         set.SteeringDeadzone = (int)SteerDeadzoneSlider.Value;
-        set.PedalDeadzone = (int)PedalDeadzoneSlider.Value;
+        set.PedalDeadzones["THROTTLE"] = ((int)ThrottleBottomSlider.Value, (int)ThrottleTopSlider.Value);
+        set.PedalDeadzones["BRAKE"] = ((int)BrakeBottomSlider.Value, (int)BrakeTopSlider.Value);
+        set.PedalDeadzones["CLUTCH"] = ((int)ClutchBottomSlider.Value, (int)ClutchTopSlider.Value);
         dirty = true;
         UpdateTuningText();
         UpdateStatus();
@@ -580,7 +587,11 @@ public partial class MainWindow : Window
         StrengthValue.Text = $"{(int)StrengthSlider.Value} %";
         ScaleValue.Text = $"{(int)ScaleSlider.Value} %";
         SteerDeadzoneValue.Text = $"{(int)SteerDeadzoneSlider.Value} %";
-        PedalDeadzoneValue.Text = $"{(int)PedalDeadzoneSlider.Value} %";
+        foreach (var (slider, text) in new[] {
+                     (ThrottleBottomSlider, ThrottleBottomValue), (ThrottleTopSlider, ThrottleTopValue),
+                     (BrakeBottomSlider, BrakeBottomValue), (BrakeTopSlider, BrakeTopValue),
+                     (ClutchBottomSlider, ClutchBottomValue), (ClutchTopSlider, ClutchTopValue) })
+            text.Text = $"{(int)slider.Value} %";
     }
 
     // -----------------------------------------------------------------------------------------
@@ -725,6 +736,9 @@ public partial class MainWindow : Window
             Save_Click(this, new RoutedEventArgs());
             await Task.Delay(300);
             Snap(outDir, "08-saved");
+            LeftScroll.ScrollToEnd();
+            await Task.Delay(300);
+            Snap(outDir, "09-pedal-deadzones");
             log.Add("status: " + StatusText.Text);
             foreach (var item in set.Items) log.Add($"{item.Key}: {item.BindingText}");
         }

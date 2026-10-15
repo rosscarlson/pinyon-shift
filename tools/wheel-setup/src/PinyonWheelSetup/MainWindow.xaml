@@ -131,7 +131,7 @@
         </Border>
 
         <!-- Left column -->
-        <ScrollViewer Grid.Row="2" Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <ScrollViewer x:Name="LeftScroll" Grid.Row="2" Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <StackPanel Margin="0,0,10,0">
 
                 <Border Style="{StaticResource Card}">
@@ -203,7 +203,7 @@
                         </DockPanel>
                         <TextBlock x:Name="FfbTestText" Style="{StaticResource SecondaryText}" Margin="0,6,0,0" Visibility="Collapsed"/>
                         <TextBlock Style="{StaticResource SecondaryText}" Margin="0,6,0,12"
-                                   Text="With EmuWheel keep the steering (vJoy) device: EmuWheel passes the forces to your base."/>
+                                   Text="Pick your wheel base (with EmuWheel, the vJoy device). A base can appear twice; if Test does not move the wheel, pick the other entry."/>
 
                         <TextBlock Text="How the game's two motor values are read" Style="{StaticResource SecondaryText}" Margin="0,0,0,4"/>
                         <ComboBox x:Name="FfbModeBox" SelectionChanged="Tuning_Changed">
@@ -247,7 +247,6 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             <TextBlock Text="Steering sensitivity" VerticalAlignment="Center"/>
                             <Slider x:Name="ScaleSlider" Grid.Column="1" Margin="10,0" Minimum="50" Maximum="450"
@@ -260,14 +259,61 @@
                             <TextBlock x:Name="SteerDeadzoneValue" Grid.Row="1" Grid.Column="2" MinWidth="48" TextAlignment="Right"
                                        FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,8,0,0"/>
 
-                            <TextBlock Grid.Row="2" Text="Pedal deadzone" VerticalAlignment="Center" Margin="0,8,0,0"/>
-                            <Slider x:Name="PedalDeadzoneSlider" Grid.Row="2" Grid.Column="1" Margin="10,8,10,0" Minimum="0" Maximum="20"
+                        </Grid>
+                        <TextBlock Text="Pedal dead zones" FontWeight="SemiBold" Margin="0,14,0,2"/>
+                        <TextBlock Style="{StaticResource SecondaryText}" Margin="0,0,0,8"
+                                   Text="Bottom: travel at rest the game ignores. Top: the last part of travel that already counts as 100 %, so you reach full throttle or brake without bottoming out."/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="64"/>
+                                <ColumnDefinition Width="50"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Text="Throttle" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,0,0"/>
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="Bottom" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,0,0"/>
+                            <Slider x:Name="ThrottleBottomSlider" Grid.Row="0" Grid.Column="2" Margin="8,0,8,0" Minimum="0" Maximum="25"
                                     TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="Tuning_Changed"/>
-                            <TextBlock x:Name="PedalDeadzoneValue" Grid.Row="2" Grid.Column="2" MinWidth="48" TextAlignment="Right"
-                                       FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,8,0,0"/>
+                            <TextBlock x:Name="ThrottleBottomValue" Grid.Row="0" Grid.Column="3" MinWidth="40" TextAlignment="Right"
+                                       FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,0,0"/>
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="Top" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,4,0,0"/>
+                            <Slider x:Name="ThrottleTopSlider" Grid.Row="1" Grid.Column="2" Margin="8,4,8,0" Minimum="0" Maximum="25"
+                                    TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="Tuning_Changed"/>
+                            <TextBlock x:Name="ThrottleTopValue" Grid.Row="1" Grid.Column="3" MinWidth="40" TextAlignment="Right"
+                                       FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,4,0,0"/>
+                            <TextBlock Grid.Row="2" Text="Brake" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,10,0,0"/>
+                            <TextBlock Grid.Row="2" Grid.Column="1" Text="Bottom" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,10,0,0"/>
+                            <Slider x:Name="BrakeBottomSlider" Grid.Row="2" Grid.Column="2" Margin="8,10,8,0" Minimum="0" Maximum="25"
+                                    TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="Tuning_Changed"/>
+                            <TextBlock x:Name="BrakeBottomValue" Grid.Row="2" Grid.Column="3" MinWidth="40" TextAlignment="Right"
+                                       FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,10,0,0"/>
+                            <TextBlock Grid.Row="3" Grid.Column="1" Text="Top" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,4,0,0"/>
+                            <Slider x:Name="BrakeTopSlider" Grid.Row="3" Grid.Column="2" Margin="8,4,8,0" Minimum="0" Maximum="25"
+                                    TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="Tuning_Changed"/>
+                            <TextBlock x:Name="BrakeTopValue" Grid.Row="3" Grid.Column="3" MinWidth="40" TextAlignment="Right"
+                                       FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,4,0,0"/>
+                            <TextBlock Grid.Row="4" Text="Clutch" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,10,0,0"/>
+                            <TextBlock Grid.Row="4" Grid.Column="1" Text="Bottom" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,10,0,0"/>
+                            <Slider x:Name="ClutchBottomSlider" Grid.Row="4" Grid.Column="2" Margin="8,10,8,0" Minimum="0" Maximum="25"
+                                    TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="Tuning_Changed"/>
+                            <TextBlock x:Name="ClutchBottomValue" Grid.Row="4" Grid.Column="3" MinWidth="40" TextAlignment="Right"
+                                       FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,10,0,0"/>
+                            <TextBlock Grid.Row="5" Grid.Column="1" Text="Top" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,4,0,0"/>
+                            <Slider x:Name="ClutchTopSlider" Grid.Row="5" Grid.Column="2" Margin="8,4,8,0" Minimum="0" Maximum="25"
+                                    TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="Tuning_Changed"/>
+                            <TextBlock x:Name="ClutchTopValue" Grid.Row="5" Grid.Column="3" MinWidth="40" TextAlignment="Right"
+                                       FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,4,0,0"/>
                         </Grid>
                         <TextBlock Style="{StaticResource SecondaryText}" Margin="0,10,0,0"
-                                   Text="Sensitivity 200 % reaches full lock at half your wheel's rotation. The live view uses these values."/>
+                                   Text="Sensitivity 200 % reaches full lock at half your wheel's rotation. The live view uses all of these values."/>
                     </StackPanel>
                 </Border>
             </StackPanel>
