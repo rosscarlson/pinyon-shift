@@ -50,11 +50,8 @@ public sealed class BindingItem : INotifyPropertyChanged
     public BindKind Kind { get; init; }
     public bool IsAxis => Kind != BindKind.Button;
     /// <summary>The label on the live view's button chips.</summary>
-    public string Short => Key switch
-    {
-        "UP" => "↑", "DOWN" => "↓", "LEFT" => "←", "RIGHT" => "→",
-        "BACK" => "Back", "START" => "Start", _ => Key,
-    };
+    public string Chip { get; init; } = "";
+    public string Short => Chip.Length > 0 ? Chip : Key;
 
     private InputRef? input;
     public InputRef? Input
@@ -106,18 +103,32 @@ public sealed class BindingSet
                 Prompt = "Press the BRAKE pedal all the way down, then release it." },
         new() { Key = "CLUTCH", Label = "Clutch", Kind = BindKind.Pedal,
                 Prompt = "Press the CLUTCH pedal all the way down, then release it. Past halfway it presses LB, the game's clutch." },
-        Button("A", "A"), Button("B", "B"), Button("X", "X"), Button("Y", "Y"),
-        Button("LB", "LB (left bumper)"), Button("RB", "RB (right bumper)"),
-        Button("LS", "LS (left stick click)"), Button("RS", "RS (right stick click)"),
-        Button("BACK", "Back / View"), Button("START", "Start / Menu"),
-        Button("UP", "D-pad up"), Button("DOWN", "D-pad down"),
-        Button("LEFT", "D-pad left"), Button("RIGHT", "D-pad right"),
+        // FH1's pad roles (Pinyon Shift's default_keys.h and player guide); the stick clicks and
+        // the d-pad are not documented, so they carry a "?" until someone confirms them in game.
+        Button("B", "Shift up", "Shift+", "B"),
+        Button("X", "Shift down", "Shift−", "X"),
+        Button("A", "Handbrake / accept", "Hbrake", "A"),
+        Button("Y", "Rewind", "Rewind", "Y"),
+        Button("RB", "Change camera", "Cam", "RB"),
+        Button("LB", "Clutch button", "Clutch", "LB",
+               "A clutch pedal already presses this; bind a button too only if you want one."),
+        Button("RS", "Look back?", "Look?", "RS, right stick click"),
+        Button("LS", "Horn?", "Horn?", "LS, left stick click"),
+        Button("BACK", "Map", "Map", "Back"),
+        Button("START", "Pause", "Pause", "Start"),
+        Button("UP", "D-pad up", "\u2191", "D-pad up"),
+        Button("DOWN", "D-pad down", "\u2193", "D-pad down"),
+        Button("LEFT", "D-pad left", "\u2190", "D-pad left"),
+        Button("RIGHT", "D-pad right", "\u2192", "D-pad right"),
     ];
 
-    private static BindingItem Button(string key, string label) => new()
+    private static BindingItem Button(string key, string role, string chip, string xbox, string? note = null) => new()
     {
-        Key = key, Label = label, Kind = BindKind.Button,
-        Prompt = $"Press the button you want as {label}. Any device: the rim, a button box, a shifter, a hat or a lever.",
+        Key = key, Label = role == xbox ? role : $"{role} ({xbox.Split(',')[0]})", Kind = BindKind.Button, Chip = chip,
+        Prompt = $"Press the button you want for {role.TrimEnd('?').ToUpperInvariant()} (Xbox {xbox})." +
+                 (role.EndsWith('?') ? " This role is our best guess for FH1." : "") +
+                 (note != null ? " " + note : "") +
+                 " Any device works: the rim, a button box, a shifter, a hat or a lever.",
     };
 
     public BindingItem Get(string key) => Items.First(i => i.Key == key);

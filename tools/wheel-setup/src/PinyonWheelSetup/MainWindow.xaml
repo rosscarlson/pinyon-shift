@@ -20,7 +20,7 @@
                     BorderBrush="Transparent" Background="Transparent">
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="150"/>
+                        <ColumnDefinition Width="190"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="110"/>
                         <ColumnDefinition Width="56"/>
@@ -417,7 +417,7 @@
                     <Grid DockPanel.Dock="Top" Margin="11,0,25,4">
                         <!-- the same columns as a BindingRow -->
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="150"/>
+                            <ColumnDefinition Width="190"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="110"/>
                             <ColumnDefinition Width="56"/>

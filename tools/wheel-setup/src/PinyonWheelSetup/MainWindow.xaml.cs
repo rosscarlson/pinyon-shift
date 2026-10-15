@@ -681,7 +681,9 @@ public partial class MainWindow : Window
             StepUnbind_Click(this, new RoutedEventArgs());  // no clutch
             await Task.Delay(150);
 
-            // Buttons: A, B, X (left unbound), Y, LB, RB, LS, RS (pedal set), BACK (lever), START, d-pad (hat)
+            // Buttons in FH1 driving order: shift up (B), shift down (X, left unbound), handbrake (A),
+            // rewind (Y, on the button box), camera (RB), clutch (LB), look back (RS, pedal set),
+            // horn (LS), map (BACK, a lever), pause (START), d-pad (hat)
             async Task Press(Action down, Action up, string? snap = null)
             {
                 down();
@@ -691,15 +693,15 @@ public partial class MainWindow : Window
                 await Task.Delay(150);
                 Next();
             }
-            await Press(() => Btn(wheel, 0, true), () => Btn(wheel, 0, false), "05-button-detected");
-            await Press(() => Btn(wheel, 1, true), () => Btn(wheel, 1, false));
+            await Press(() => Btn(wheel, 1, true), () => Btn(wheel, 1, false), "05-button-detected");
             StepUnbind_Click(this, new RoutedEventArgs());
             await Task.Delay(150);
-            await Press(() => Btn(box, 5, true), () => Btn(box, 5, false));  // Y on the button box
-            await Press(() => Btn(wheel, 4, true), () => Btn(wheel, 4, false));
+            await Press(() => Btn(wheel, 0, true), () => Btn(wheel, 0, false));
+            await Press(() => Btn(box, 5, true), () => Btn(box, 5, false));
             await Press(() => Btn(wheel, 5, true), () => Btn(wheel, 5, false));
-            await Press(() => Btn(wheel, 6, true), () => Btn(wheel, 6, false));
+            await Press(() => Btn(wheel, 4, true), () => Btn(wheel, 4, false));
             await Press(() => Btn(pedals, 0, true), () => Btn(pedals, 0, false));
+            await Press(() => Btn(wheel, 6, true), () => Btn(wheel, 6, false));
             await Press(() => Axis(wheel, 5, 32767), () => Axis(wheel, 5, -32768));
             await Press(() => Btn(wheel, 9, true), () => Btn(wheel, 9, false));
             foreach (byte dir in new byte[] { WheelMath.HatUp, WheelMath.HatDown, WheelMath.HatLeft, WheelMath.HatRight })
