@@ -387,7 +387,7 @@ public partial class MainWindow : Window
 
         string? warning = null;
         if (capture.RestsMidRange)
-            warning = "This axis rests in the middle of its range, so the game would read it as half pressed. Give it a full range in EmuWheel or vJoy, or Rebind.";
+            warning = "This axis rests in the middle of its range, so the game would read it as half pressed. Calibrate it to its full range in the device's own software, or Rebind.";
         else if (item.Kind == BindKind.Button &&
                  set.Buttons.FirstOrDefault(b => b != item && b.Input != null && b.Input.SameInput(candidate)) is { } other)
             warning = $"This is also bound to {other.Label}. Next moves it here.";
@@ -582,7 +582,7 @@ public partial class MainWindow : Window
         FfbTestText.Text = $"Testing \"{dev.Name}\"…";
         try
         {
-            FfbTestText.Text = await devices.TestForceAsync(dev);
+            FfbTestText.Text = await devices.TestForceAsync(dev, FfbInvertBox.IsChecked == true);
         }
         finally
         {

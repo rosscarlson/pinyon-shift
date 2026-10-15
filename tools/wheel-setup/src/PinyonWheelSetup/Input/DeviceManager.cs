@@ -276,8 +276,10 @@ public sealed class DeviceManager : IDisposable
         return d;
     }
 
-    /// <summary>A gentle push one way then the other, to check the FFB chain (EmuWheel, vJoy, base).</summary>
-    public async Task<string> TestForceAsync(Device device)
+    /// <summary>A gentle pull LEFT, then RIGHT, with the same direction the game's forces get, so it also
+    /// checks Reverse force direction: a positive SDL steering force pulls right (the game's force,
+    /// negated for DirectInput, opposes the steering).</summary>
+    public async Task<string> TestForceAsync(Device device, bool reverse)
     {
         Log.Write($"FFB test on \"{device.Name}\"");
         Log.Step($"SDL_OpenHapticFromJoystick(\"{device.Name}\")");
@@ -295,7 +297,8 @@ public sealed class DeviceManager : IDisposable
             Log.Write($"  haptic features 0x{features:X}");
             if ((features & Sdl.HapticConstant) == 0)
                 return $"\"{device.Name}\" has no constant force; the game would only rumble it.";
-            foreach (short level in new short[] { 4900, -4900 })  // 15 %
+            short left = (short)(reverse ? 4900 : -4900);  // 15 %
+            foreach (short level in new short[] { left, (short)-left })
             {
                 int effect = Sdl.SDL_CreateHapticEffect(haptic, Sdl.ConstantForce(level, 500));
                 if (effect < 0)
@@ -309,7 +312,7 @@ public sealed class DeviceManager : IDisposable
                 await Task.Delay(650);
                 Sdl.SDL_DestroyHapticEffect(haptic, effect);
             }
-            return $"Sent a gentle push one way, then the other (15 %) to \"{device.Name}\".";
+            return $"Pulled \"{device.Name}\" LEFT, then RIGHT (15 %). If it pulled right first, tick Reverse force direction.";
         }
         finally
         {
