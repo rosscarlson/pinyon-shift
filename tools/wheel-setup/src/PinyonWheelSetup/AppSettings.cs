@@ -11,6 +11,8 @@ public sealed class AppSettings
     public ThemeChoice Theme { get; set; } = ThemeChoice.Dark;
     /// <summary>The config the player browsed to, if it is not where the launcher puts it.</summary>
     public string? ConfigPath { get; set; }
+    /// <summary>Left-column cards the player opened (all start collapsed).</summary>
+    public Dictionary<string, bool> ExpandedCards { get; set; } = new();
 
     private static readonly JsonSerializerOptions Options = new()
     {
