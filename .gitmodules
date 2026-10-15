@@ -1,4 +1,4 @@
 [submodule "thirdparty/shiftglue-sdk"]
 	path = thirdparty/shiftglue-sdk
-	url = https://github.com/rosscarlson/shiftglue-sdk
-	branch = feat/racing-wheels
+	url = https://github.com/arcanite24/shiftglue-sdk
+	branch = main
