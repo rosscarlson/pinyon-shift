@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
+using PinyonWheelSetup.Diagnostics;
 
 namespace PinyonWheelSetup.Input;
 
@@ -21,9 +23,12 @@ public sealed class Device : INotifyPropertyChanged
     public short[] BaseAxes { get; set; } = [];
     public bool[] BaseButtons { get; set; } = [];
     public byte[] BaseHats { get; set; } = [];
+    // Last values the activity display saw. Each is sized on its own: a button box has
+    // buttons but no axes.
     private short[] prevAxes = [];
     private bool[] prevButtons = [];
     private byte[] prevHats = [];
+    private DateTime nextActivityLog;
 
     public string Ids => $"{Vendor:x4}:{Product:x4}";
     public string Summary =>
@@ -53,41 +58,52 @@ public sealed class Device : INotifyPropertyChanged
         BaseAxes = (short[])Axes.Clone();
         BaseButtons = (bool[])Buttons.Clone();
         BaseHats = (byte[])Hats.Clone();
-        if (prevAxes.Length != Axes.Length)
-        {
-            prevAxes = (short[])Axes.Clone();
-            prevButtons = (bool[])Buttons.Clone();
-            prevHats = (byte[])Hats.Clone();
-        }
+    }
+
+    public void InitActivity()
+    {
+        prevAxes = (short[])Axes.Clone();
+        prevButtons = (bool[])Buttons.Clone();
+        prevHats = (byte[])Hats.Clone();
     }
 
     public void TrackActivity(DateTime now)
     {
+        if (prevAxes.Length != Axes.Length || prevButtons.Length != Buttons.Length || prevHats.Length != Hats.Length)
+            InitActivity();
+        string? what = null;
         for (int i = 0; i < Axes.Length; i++)
         {
             if (Math.Abs(Axes[i] - prevAxes[i]) > 2500)
             {
-                Activity = $"axis {i}  {WheelMath.Signed(Axes[i])}";
+                what = $"axis {i}  {WheelMath.Signed(Axes[i])}";
                 prevAxes[i] = Axes[i];
-                activeUntil = now.AddSeconds(1.5);
             }
         }
         for (int i = 0; i < Buttons.Length; i++)
         {
             if (Buttons[i] != prevButtons[i])
             {
-                Activity = $"button {i} {(Buttons[i] ? "down" : "up")}";
+                what = $"button {i} {(Buttons[i] ? "down" : "up")}";
                 prevButtons[i] = Buttons[i];
-                activeUntil = now.AddSeconds(1.5);
             }
         }
         for (int i = 0; i < Hats.Length; i++)
         {
             if (Hats[i] != prevHats[i])
             {
-                Activity = $"hat {i} {(Hats[i] == 0 ? "centre" : WheelMath.HatName(WheelMath.FirstHatBit(Hats[i])))}";
+                what = $"hat {i} {(Hats[i] == 0 ? "centre" : WheelMath.HatName(WheelMath.FirstHatBit(Hats[i])))}";
                 prevHats[i] = Hats[i];
-                activeUntil = now.AddSeconds(1.5);
+            }
+        }
+        if (what != null)
+        {
+            Activity = what;
+            activeUntil = now.AddSeconds(1.5);
+            if (now >= nextActivityLog)
+            {
+                Log.Write($"input: \"{Name}\" {what}");
+                nextActivityLog = now.AddMilliseconds(500);
             }
         }
         IsActive = now < activeUntil;
@@ -104,24 +120,34 @@ public sealed class DeviceManager : IDisposable
     public string? InitError { get; private set; }
     public event Action? DevicesChanged;
     private DateTime nextScan;
+    private readonly HashSet<string> reportedErrors = [];
+    private bool started;
 
     public bool Start()
     {
         try
         {
             // The setup window is not an SDL window, so SDL must not treat input as unfocused.
+            Log.Step("SDL_SetHint");
             Sdl.SDL_SetHint("SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS", "1");
+            Log.Write("SDL_Init(joystick, haptic)...");
+            Log.Step("SDL_Init");
+            var watch = Stopwatch.StartNew();
             if (!Sdl.SDL_Init(Sdl.InitJoystick | Sdl.InitHaptic))
             {
                 InitError = "SDL could not start: " + Sdl.Error();
+                Log.Write(InitError);
                 return false;
             }
+            Log.Write($"SDL_Init done in {watch.ElapsedMilliseconds} ms");
         }
         catch (Exception e) when (e is DllNotFoundException or EntryPointNotFoundException or BadImageFormatException)
         {
             InitError = "SDL3.dll could not be loaded: " + e.Message;
+            Log.Error("loading SDL3.dll", e);
             return false;
         }
+        started = true;
         Scan();
         return true;
     }
@@ -129,15 +155,28 @@ public sealed class DeviceManager : IDisposable
     /// <summary>Call ~60 times a second.</summary>
     public void Poll()
     {
+        if (!started) return;
+        Log.Step("SDL_UpdateJoysticks");
         Sdl.SDL_UpdateJoysticks();
+        Log.Step("SDL_FlushEvents");
         Sdl.SDL_FlushEvents(0, uint.MaxValue);
         var now = DateTime.UtcNow;
         if (now >= nextScan) Scan();
         foreach (var d in Devices)
         {
-            d.Read();
-            d.TrackActivity(now);
+            try
+            {
+                Log.Step($"reading \"{d.Name}\"");
+                d.Read();
+                d.TrackActivity(now);
+            }
+            catch (Exception e)
+            {
+                // One device's problem must not stop the others being read.
+                if (reportedErrors.Add($"{d.Id}:{e.GetType().Name}")) Log.Error($"reading \"{d.Name}\"", e);
+            }
         }
+        Log.Step("idle");
     }
 
     public Device? Find(uint id) => Devices.FirstOrDefault(d => d.Id == id);
@@ -150,7 +189,8 @@ public sealed class DeviceManager : IDisposable
     private void Scan()
     {
         nextScan = DateTime.UtcNow.AddMilliseconds(500);
-        var ids = new HashSet<uint>();
+        var ids = new List<uint>();
+        Log.Step("SDL_GetJoysticks");
         IntPtr list = Sdl.SDL_GetJoysticks(out int count);
         if (list != IntPtr.Zero)
         {
@@ -160,6 +200,8 @@ public sealed class DeviceManager : IDisposable
         bool changed = false;
         foreach (var gone in Devices.Where(d => !ids.Contains(d.Id)).ToList())
         {
+            Log.Write($"device removed: id {gone.Id} \"{gone.Name}\"");
+            Log.Step($"closing \"{gone.Name}\"");
             Sdl.SDL_CloseJoystick(gone.Handle);
             Devices.Remove(gone);
             changed = true;
@@ -167,43 +209,103 @@ public sealed class DeviceManager : IDisposable
         foreach (uint id in ids)
         {
             if (Find(id) != null) continue;
-            IntPtr js = Sdl.SDL_OpenJoystick(id);
-            if (js == IntPtr.Zero) continue;
-            var d = new Device
-            {
-                Id = id,
-                Handle = js,
-                Name = Sdl.Name(js),
-                Path = Sdl.Path(js),
-                Vendor = Sdl.SDL_GetJoystickVendor(js),
-                Product = Sdl.SDL_GetJoystickProduct(js),
-                Haptic = Sdl.SDL_IsJoystickHaptic(js),
-                Axes = new short[Math.Max(0, Sdl.SDL_GetNumJoystickAxes(js))],
-                Buttons = new bool[Math.Max(0, Sdl.SDL_GetNumJoystickButtons(js))],
-                Hats = new byte[Math.Max(0, Sdl.SDL_GetNumJoystickHats(js))],
-            };
-            d.Read();
-            d.SnapshotBaseline();
+            var d = OpenDevice(id);
+            if (d == null) continue;
             Devices.Add(d);
             changed = true;
         }
-        if (changed) DevicesChanged?.Invoke();
+        if (changed)
+        {
+            Log.Write($"devices now: {Devices.Count}");
+            DevicesChanged?.Invoke();
+        }
+        Log.Step("idle");
+    }
+
+    private Device? OpenDevice(uint id)
+    {
+        var watch = Stopwatch.StartNew();
+        Log.Write($"opening device id {id}...");
+        Log.Step($"SDL_OpenJoystick({id})");
+        IntPtr js = Sdl.SDL_OpenJoystick(id);
+        if (js == IntPtr.Zero)
+        {
+            Log.Write($"  could not open id {id}: {Sdl.Error()}");
+            return null;
+        }
+        string name = Sdl.Name(js);
+        string path = Sdl.Path(js);
+        int axes = Math.Max(0, Sdl.SDL_GetNumJoystickAxes(js));
+        int buttons = Math.Max(0, Sdl.SDL_GetNumJoystickButtons(js));
+        int hats = Math.Max(0, Sdl.SDL_GetNumJoystickHats(js));
+        ushort vendor = Sdl.SDL_GetJoystickVendor(js);
+        ushort product = Sdl.SDL_GetJoystickProduct(js);
+        Log.Write($"  opened \"{name}\" {vendor:x4}:{product:x4}, {axes} axes, {buttons} buttons, {hats} hats, " +
+                  $"path {path} ({watch.ElapsedMilliseconds} ms)");
+        Log.Step($"SDL_IsJoystickHaptic(\"{name}\")");
+        var hapticWatch = Stopwatch.StartNew();
+        bool haptic = false;
+        try { haptic = Sdl.SDL_IsJoystickHaptic(js); }
+        catch (Exception e) { Log.Error($"haptic check for \"{name}\"", e); }
+        Log.Write($"  force feedback: {(haptic ? "yes" : "no")} ({hapticWatch.ElapsedMilliseconds} ms)");
+        var d = new Device
+        {
+            Id = id,
+            Handle = js,
+            Name = name,
+            Path = path,
+            Vendor = vendor,
+            Product = product,
+            Haptic = haptic,
+            Axes = new short[axes],
+            Buttons = new bool[buttons],
+            Hats = new byte[hats],
+        };
+        try
+        {
+            d.Read();
+            d.SnapshotBaseline();
+            d.InitActivity();
+            if (axes > 0)
+                Log.Write($"  axes at rest: {string.Join(' ', d.Axes.Select(a => a.ToString()))}");
+        }
+        catch (Exception e)
+        {
+            Log.Error($"first read of \"{name}\"", e);
+        }
+        return d;
     }
 
     /// <summary>A gentle push one way then the other, to check the FFB chain (EmuWheel, vJoy, base).</summary>
     public async Task<string> TestForceAsync(Device device)
     {
+        Log.Write($"FFB test on \"{device.Name}\"");
+        Log.Step($"SDL_OpenHapticFromJoystick(\"{device.Name}\")");
         IntPtr haptic = Sdl.SDL_OpenHapticFromJoystick(device.Handle);
-        if (haptic == IntPtr.Zero) return "Could not open force feedback: " + Sdl.Error();
+        Log.Step("idle");
+        if (haptic == IntPtr.Zero)
+        {
+            string error = "Could not open force feedback: " + Sdl.Error();
+            Log.Write("  " + error);
+            return error;
+        }
         try
         {
-            if ((Sdl.SDL_GetHapticFeatures(haptic) & Sdl.HapticConstant) == 0)
+            uint features = Sdl.SDL_GetHapticFeatures(haptic);
+            Log.Write($"  haptic features 0x{features:X}");
+            if ((features & Sdl.HapticConstant) == 0)
                 return $"\"{device.Name}\" has no constant force; the game would only rumble it.";
             foreach (short level in new short[] { 4900, -4900 })  // 15 %
             {
                 int effect = Sdl.SDL_CreateHapticEffect(haptic, Sdl.ConstantForce(level, 500));
-                if (effect < 0) return "The device refused a constant force: " + Sdl.Error();
-                Sdl.SDL_RunHapticEffect(haptic, effect, 1);
+                if (effect < 0)
+                {
+                    string error = "The device refused a constant force: " + Sdl.Error();
+                    Log.Write("  " + error);
+                    return error;
+                }
+                bool ran = Sdl.SDL_RunHapticEffect(haptic, effect, 1);
+                Log.Write($"  constant force {level}: run {(ran ? "ok" : "failed: " + Sdl.Error())}");
                 await Task.Delay(650);
                 Sdl.SDL_DestroyHapticEffect(haptic, effect);
             }
@@ -220,5 +322,6 @@ public sealed class DeviceManager : IDisposable
         foreach (var d in Devices) Sdl.SDL_CloseJoystick(d.Handle);
         Devices.Clear();
         try { Sdl.SDL_Quit(); } catch (DllNotFoundException) { }
+        Log.Write("closed");
     }
 }

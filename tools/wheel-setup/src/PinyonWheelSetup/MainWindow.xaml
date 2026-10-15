@@ -447,7 +447,7 @@
                         <StackPanel VerticalAlignment="Center">
                             <TextBlock x:Name="StatusText" FontWeight="SemiBold" TextWrapping="Wrap"/>
                             <TextBlock x:Name="HintText" Style="{StaticResource SecondaryText}" Margin="0,2,0,0"
-                                       Text="Enter: next step · Esc: stop the setup · Bind on any row binds just that control"/>
+                                       Text="Enter: next step · Esc: stop the setup · Bind on any row binds just that control · A log is written to PinyonWheelSetup.log beside this app"/>
                         </StackPanel>
                     </DockPanel>
                 </Border>

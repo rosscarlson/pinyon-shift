@@ -9,6 +9,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Microsoft.Win32;
 using PinyonWheelSetup.Bindings;
+using PinyonWheelSetup.Diagnostics;
 using PinyonWheelSetup.Input;
 using PinyonWheelSetup.Theming;
 using InputType = PinyonWheelSetup.Bindings.InputType;
@@ -73,7 +74,7 @@ public partial class MainWindow : Window
     {
         if (!devices.Start())
         {
-            ShowBanner(devices.InitError + " The setup cannot read controllers.");
+            ShowBanner(devices.InitError + $" The setup cannot read controllers. Details: {Log.FilePath}");
         }
         selfTest = args.Length >= 3 && args[0] == "--selftest";
         if (selfTest)
@@ -83,8 +84,10 @@ public partial class MainWindow : Window
         else
         {
             var found = GameConfig.Find();
+            foreach (var f in found) Log.Write($"config found: {f}");
             configPath = settings.ConfigPath is { } chosen && File.Exists(chosen) ? chosen : found.FirstOrDefault();
         }
+        Log.Write($"config in use: {configPath ?? "(none)"}");
         LoadConfig();
         timer.Tick += (_, _) => Tick();
         timer.Start();
@@ -125,6 +128,8 @@ public partial class MainWindow : Window
                 error = "Could not read the config: " + ex.Message;
             }
         }
+        foreach (var (key, value) in configValues.Where(kv => kv.Key.StartsWith("wheel_")))
+            Log.Write($"config {key} = {value}");
         set.Load(configValues, devices.Devices);
         dirty = false;
         UiFromSet();
@@ -178,7 +183,9 @@ public partial class MainWindow : Window
             try
             {
                 var lines = set.ConfigLines(devices.Devices);
+                foreach (var (k, v) in lines) Log.Write($"save {k} = {v}");
                 string backup = GameConfig.Update(configPath, lines);
+                Log.Write($"saved {configPath}, backup {backup}");
                 TryWriteRecord(lines);
                 configValues = GameConfig.Read(configPath);
                 dirty = false;
@@ -187,6 +194,7 @@ public partial class MainWindow : Window
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
                 error = "Could not save: " + ex.Message;
+                Log.Error("save", ex);
             }
         }
         UpdateStatus();
@@ -208,6 +216,23 @@ public partial class MainWindow : Window
     // Live loop
 
     private void Tick()
+    {
+        Log.Beat();
+        try
+        {
+            TickCore();
+        }
+        catch (Exception e)
+        {
+            if (tickErrors.Add(e.GetType().FullName + e.Message)) Log.Error("tick", e);
+        }
+        Log.Beat();
+    }
+
+    private readonly HashSet<string> tickErrors = [];
+    private string lastDetection = "";
+
+    private void TickCore()
     {
         devices.Poll();
         set.UpdateLive(devices.Devices);
@@ -279,6 +304,7 @@ public partial class MainWindow : Window
 
     private void BeginStep(BindingItem item)
     {
+        Log.Write($"step: {item.Key}{(guided ? $" ({stepIndex + 1} of {set.Items.Count})" : " (single)")}");
         foreach (var i in set.Items) i.IsCurrent = false;
         item.IsCurrent = true;
         capture = new Capture(set, devices, item);
@@ -321,6 +347,12 @@ public partial class MainWindow : Window
         pulse.Stop(ListenDot);
         ListenDot.Opacity = 1;
         var dev = devices.Find(capture.CandidateDevice);
+        string detection = $"{item.Key}: \"{dev?.Name}\" {candidate.Describe()} rest {capture.Rest} inverted {candidate.Inverted}";
+        if (detection != lastDetection)
+        {
+            Log.Write("detected " + detection);
+            lastDetection = detection;
+        }
         string where = $"{dev?.Name ?? candidate.Device?.Name} · {candidate.Describe()}";
         if (candidate.Type == InputType.Axis) where += $" · rests at {WheelMath.Signed(capture.Rest)}";
         DetectText.Text = "Detected: " + where;
@@ -355,6 +387,7 @@ public partial class MainWindow : Window
                 other.Input = null;
         }
         item.Input = candidate;
+        Log.Write($"bound {item.Key} -> {item.BindingText} (inverted {candidate.Inverted})");
         dirty = true;
         if (item.Kind == BindKind.Steering) RefreshFfbChoices();
         Advance();
@@ -602,9 +635,12 @@ public partial class MainWindow : Window
         {
             uint wheelId = Sdl.AttachVirtual("vJoy Device", 0x1234, 0xBEAD, Sdl.JoystickTypeWheel, 6, 16, 1);
             uint pedalsId = Sdl.AttachVirtual("SimJack Pro Pedals", 0x16D0, 0x0D5A, Sdl.JoystickTypeUnknown, 3, 4, 0);
+            // A button box: buttons, no axes or hats (the case that once broke every device's reading).
+            uint boxId = Sdl.AttachVirtual("Button Box", 0x1209, 0xB0B0, Sdl.JoystickTypeUnknown, 0, 12, 0);
             await Task.Delay(700);  // the next device scan opens them
             var wheel = devices.Find(wheelId)?.Handle ?? throw new InvalidOperationException("virtual wheel not opened");
             var pedals = devices.Find(pedalsId)?.Handle ?? throw new InvalidOperationException("virtual pedals not opened");
+            var box = devices.Find(boxId)?.Handle ?? throw new InvalidOperationException("virtual button box not opened");
             void Axis(IntPtr d, int a, int v) => Sdl.SDL_SetJoystickVirtualAxis(d, a, (short)Math.Clamp(v, -32768, 32767));
             void Btn(IntPtr d, int b, bool down) => Sdl.SDL_SetJoystickVirtualButton(d, b, down);
             void Hat(IntPtr d, byte v) => Sdl.SDL_SetJoystickVirtualHat(d, 0, v);
@@ -659,7 +695,7 @@ public partial class MainWindow : Window
             await Press(() => Btn(wheel, 1, true), () => Btn(wheel, 1, false));
             StepUnbind_Click(this, new RoutedEventArgs());
             await Task.Delay(150);
-            await Press(() => Btn(wheel, 3, true), () => Btn(wheel, 3, false));
+            await Press(() => Btn(box, 5, true), () => Btn(box, 5, false));  // Y on the button box
             await Press(() => Btn(wheel, 4, true), () => Btn(wheel, 4, false));
             await Press(() => Btn(wheel, 5, true), () => Btn(wheel, 5, false));
             await Press(() => Btn(wheel, 6, true), () => Btn(wheel, 6, false));
