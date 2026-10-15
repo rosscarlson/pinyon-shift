@@ -705,7 +705,7 @@ public partial class MainWindow : Window
         var log = new List<string>();
         try
         {
-            uint wheelId = Sdl.AttachVirtual("vJoy Device", 0x1234, 0xBEAD, Sdl.JoystickTypeWheel, 6, 16, 1);
+            uint wheelId = Sdl.AttachVirtual("Wheel Base", 0x1234, 0xBEAD, Sdl.JoystickTypeWheel, 6, 16, 1);
             uint pedalsId = Sdl.AttachVirtual("SimJack Pro Pedals", 0x16D0, 0x0D5A, Sdl.JoystickTypeUnknown, 3, 4, 0);
             // A button box: buttons, no axes or hats (the case that once broke every device's reading).
             uint boxId = Sdl.AttachVirtual("Button Box", 0x1209, 0xB0B0, Sdl.JoystickTypeUnknown, 0, 12, 0);
