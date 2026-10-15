@@ -97,8 +97,9 @@ public static class GameConfig
         return values;
     }
 
-    /// <summary>Replaces or adds top-level `key = value` lines, keeping everything else; backs up first.</summary>
-    public static string Update(string file, IReadOnlyList<(string Key, string Value)> lines)
+    /// <summary>Replaces or adds top-level `key = value` lines, keeping everything else. Backs the
+    /// file up first unless <paramref name="backup"/> is false; returns the backup's path, or null.</summary>
+    public static string? Update(string file, IReadOnlyList<(string Key, string Value)> lines, bool backup = true)
     {
         string text = File.ReadAllText(file);
         bool bom = File.ReadAllBytes(file) is [0xEF, 0xBB, 0xBF, ..];
@@ -129,11 +130,15 @@ public static class GameConfig
             rows.InsertRange(table, added);
         }
 
-        string backup = $"{file}.wheel-backup-{DateTime.Now:yyyyMMdd-HHmmss}";
-        File.Copy(file, backup, overwrite: true);
+        string? backupPath = null;
+        if (backup)
+        {
+            backupPath = $"{file}.wheel-backup-{DateTime.Now:yyyyMMdd-HHmmss}";
+            File.Copy(file, backupPath, overwrite: true);
+        }
         string temporary = file + ".tmp";
         File.WriteAllText(temporary, string.Join(newline, rows) + newline, new UTF8Encoding(bom));
         File.Move(temporary, file, overwrite: true);
-        return backup;
+        return backupPath;
     }
 }

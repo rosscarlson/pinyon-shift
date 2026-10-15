@@ -150,6 +150,18 @@ public sealed class Capture
         Candidate = input;
     }
 
+    /// <summary>The detected input is back at rest: a button or hat let go, an axis returned.</summary>
+    public bool CandidateReleased()
+    {
+        if (Candidate == null || devices.Find(CandidateDevice) is not { } d) return false;
+        return Candidate.Type switch
+        {
+            InputType.Button => Candidate.Index < d.Buttons.Length && !d.Buttons[Candidate.Index],
+            InputType.Hat => Candidate.Index < d.Hats.Length && (d.Hats[Candidate.Index] & Candidate.HatMask) == 0,
+            _ => Candidate.Index < d.Axes.Length && Math.Abs(d.Axes[Candidate.Index] - Rest) < 3000,
+        };
+    }
+
     /// <summary>An axis resting mid-range reads as half pressed in the game.</summary>
     public bool RestsMidRange =>
         Candidate is { Type: InputType.Axis } && Item.Kind != BindKind.Steering && Math.Abs((int)Rest) < 12000;

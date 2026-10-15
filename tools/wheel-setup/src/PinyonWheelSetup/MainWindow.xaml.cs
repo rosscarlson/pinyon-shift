@@ -162,21 +162,30 @@ public partial class MainWindow : Window
         LoadConfig();
     }
 
-    private void Save_Click(object sender, RoutedEventArgs e)
+    private void Save_Click(object sender, RoutedEventArgs e) => SaveToGame(null);
+
+    private bool backedUp;
+
+    /// <summary>Writes the bindings into the game config. The first save of a session keeps a backup.
+    /// <paramref name="bound"/> names what a single Bind just set, for the status line.</summary>
+    private bool SaveToGame(string? bound)
     {
         info = null;
         error = null;
+        bool saved = false;
         if (configPath == null || !File.Exists(configPath))
         {
             error = "There is no game config to save to. Run the game once from the launcher, close it, then Save again.";
         }
         else if (set.Steering.Input == null)
         {
-            error = "Bind the steering first: Start guided setup, or Bind on the Steering row.";
+            if (bound != null) info = $"Bound {bound}. Bind the steering too, then it saves.";
+            else error = "Bind the steering first: Start guided setup, or Bind on the Steering row.";
         }
         else if (gameRunning && !selfTest)
         {
-            error = "Close Pinyon Shift first. It reads the config when it starts, and saves its own settings over it on exit.";
+            if (bound != null) info = $"Bound {bound}, not saved yet: close Pinyon Shift, then Save to game.";
+            else error = "Close Pinyon Shift first. It reads the config when it starts, and saves its own settings over it on exit.";
         }
         else
         {
@@ -184,12 +193,17 @@ public partial class MainWindow : Window
             {
                 var lines = set.ConfigLines(devices.Devices);
                 foreach (var (k, v) in lines) Log.Write($"save {k} = {v}");
-                string backup = GameConfig.Update(configPath, lines);
-                Log.Write($"saved {configPath}, backup {backup}");
+                string? backup = GameConfig.Update(configPath, lines, backup: !backedUp);
+                if (backup != null) backedUp = true;
+                Log.Write($"saved {configPath}" + (backup != null ? $", backup {backup}" : ""));
                 TryWriteRecord(lines);
                 configValues = GameConfig.Read(configPath);
                 dirty = false;
-                info = $"Saved to the game config. The old one is kept as {Path.GetFileName(backup)}. Start the game from the launcher.";
+                saved = true;
+                info = bound != null
+                    ? $"Bound and saved {bound}."
+                    : "Saved to the game config" + (backup != null ? $". The old one is kept as {Path.GetFileName(backup)}." : ".") +
+                      " Start the game from the launcher.";
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
@@ -198,6 +212,7 @@ public partial class MainWindow : Window
             }
         }
         UpdateStatus();
+        return saved;
     }
 
     /// <summary>A copy of the saved lines beside the EXE, in case the config is replaced later.</summary>
@@ -248,6 +263,7 @@ public partial class MainWindow : Window
                 capture.Item.ValueText = t;
             }
             UpdateStepPanel();
+            AutoCommitSingleBind();
         }
         UpdateLiveView();
 
@@ -313,12 +329,16 @@ public partial class MainWindow : Window
         GuidedLabel.Text = guided ? "Stop setup" : "Cancel";
         StepTitle.Text = item.Label;
         StepCounter.Text = guided ? $"Step {stepIndex + 1} of {set.Items.Count}" : "Binding one control";
-        StepPrompt.Text = item.Prompt;
+        StepPrompt.Text = guided ? item.Prompt
+            : item.Prompt + (item.Kind == BindKind.Button
+                ? " It binds and saves as soon as you press it."
+                : " It binds and saves when you let go.");
         BackButton.Visibility = guided ? Visibility.Visible : Visibility.Collapsed;
         BackButton.IsEnabled = guided && stepIndex > 0;
         SkipButton.Content = guided ? "Skip" : "Cancel";
         SkipButton.ToolTip = guided ? "Keep this control as it is and go on" : "Keep the binding as it was";
         NextLabel.Text = !guided || stepIndex == set.Items.Count - 1 ? "Finish" : "Next";
+        NextButton.Visibility = guided ? Visibility.Visible : Visibility.Collapsed;
         StepBar.Centered = item.Kind == BindKind.Steering;
         pulse.Begin(ListenDot, true);
         if (BindingList.ItemContainerGenerator.ContainerFromItem(item) is FrameworkElement row) row.BringIntoView();
@@ -376,6 +396,30 @@ public partial class MainWindow : Window
     }
 
     private void StepNext_Click(object sender, RoutedEventArgs e) => CommitAndAdvance();
+
+    private DateTime singleReleasedAt;
+
+    /// <summary>A single Bind needs no Finish: a button binds and saves as soon as it is pressed; an
+    /// axis once it has moved through its travel and come back (its direction needs the travel).</summary>
+    private void AutoCommitSingleBind()
+    {
+        if (guided || capture?.Candidate is not { } candidate) return;
+        bool immediate = candidate.Type != InputType.Axis;
+        if (!immediate)
+        {
+            if (!capture.CandidateReleased() || capture.RestsMidRange)
+            {
+                singleReleasedAt = default;
+                return;
+            }
+            if (singleReleasedAt == default) singleReleasedAt = DateTime.UtcNow;
+            if (DateTime.UtcNow - singleReleasedAt < TimeSpan.FromMilliseconds(300)) return;
+        }
+        singleReleasedAt = default;
+        var item = capture.Item;
+        CommitAndAdvance();
+        SaveToGame($"{item.Label} \u2192 {item.BindingText}");
+    }
 
     private void CommitAndAdvance()
     {
@@ -759,6 +803,32 @@ public partial class MainWindow : Window
             LeftScroll.ScrollToVerticalOffset(330);
             await Task.Delay(300);
             Snap(outDir, "10-force-feedback");
+
+            // Single Bind: no Finish. A button binds and saves on press; an axis when let go.
+            Btn(wheel, 0, false);
+            Hat(wheel, 0);
+            Axis(wheel, 0, 0);
+            Axis(pedals, 0, -32768);
+            Axis(pedals, 1, 32767);
+            await Task.Delay(300);
+            void BindRow(string key) =>
+                RowBind_Click(new Button { Tag = set.Get(key) }, new RoutedEventArgs());
+            BindRow("LB");
+            await Task.Delay(250);
+            Btn(wheel, 7, true);
+            await Task.Delay(300);
+            log.Add($"single bind LB: {set.Get("LB").BindingText}, capture open: {capture != null}, status: {StatusText.Text}");
+            Snap(outDir, "11-single-bind-button");
+            Btn(wheel, 7, false);
+            await Task.Delay(200);
+            BindRow("THROTTLE");
+            await Task.Delay(250);
+            Axis(pedals, 2, 32767);
+            await Task.Delay(300);
+            log.Add($"single bind THROTTLE while held: capture open: {capture != null}");
+            Axis(pedals, 2, -32768);
+            await Task.Delay(600);
+            log.Add($"single bind THROTTLE after release: {set.Get("THROTTLE").BindingText}, capture open: {capture != null}, status: {StatusText.Text}");
             log.Add("status: " + StatusText.Text);
             foreach (var item in set.Items) log.Add($"{item.Key}: {item.BindingText}");
         }
