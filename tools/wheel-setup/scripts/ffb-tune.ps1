@@ -3,6 +3,7 @@
 #   powershell -ExecutionPolicy Bypass -File ffb-tune.ps1 -Invert on          # reverse the force direction
 #   powershell -ExecutionPolicy Bypass -File ffb-tune.ps1 -Rumble 0           # no kerb/impact vibration
 #   powershell -ExecutionPolicy Bypass -File ffb-tune.ps1 -Strength 30 -Scale 127
+#   powershell -ExecutionPolicy Bypass -File ffb-tune.ps1 -LogInputs on -Trace on  # log every wheel button/axis
 # Options can be combined. A backup of the config is kept each time something changes.
 param(
     [string]$Install = 'G:\Games\Forza Horizon 1',
@@ -10,7 +11,8 @@ param(
     [ValidateRange(0, 100)][int]$Rumble = -1,
     [ValidateRange(0, 100)][int]$Strength = -1,
     [ValidateRange(1, 1000000)][int]$Scale = 0,
-    [ValidateSet('on', 'off')][string]$Trace
+    [ValidateSet('on', 'off')][string]$Trace,
+    [ValidateSet('on', 'off')][string]$LogInputs
 )
 $ErrorActionPreference = 'Stop'
 $config = Join-Path $Install 'source\0.1.1\.local\preview\config\pinyon_shift.toml'
@@ -22,6 +24,7 @@ if ($Rumble -ge 0) { $changes['wheel_ffb_rumble'] = "$Rumble" }
 if ($Strength -ge 0) { $changes['wheel_ffb_strength'] = "$Strength" }
 if ($Scale -gt 0) { $changes['wheel_ffb_magnitude_max'] = "$Scale" }
 if ($Trace) { $changes['wheel_ffb_trace'] = if ($Trace -eq 'on') { 'true' } else { 'false' } }
+if ($LogInputs) { $changes['wheel_log_inputs'] = if ($LogInputs -eq 'on') { 'true' } else { 'false' } }
 
 if ($changes.Count -gt 0) {
     if (Get-Process -Name pinyon_shift -ErrorAction SilentlyContinue) { throw 'Close Pinyon Shift first, then run this again.' }
