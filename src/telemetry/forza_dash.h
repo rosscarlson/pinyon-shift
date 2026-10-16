@@ -29,6 +29,9 @@ struct CarSample {
   // The game's own rumble for bumps, kerbs and impacts (its low-frequency
   // motor, 0-1), the feel its designers gave a controller.
   std::array<float, 4> surface_rumble{};
+  // Velocity along the car's forward axis (FM7's VelocityZ), m/s; negative
+  // reversing.
+  float velocity_forward_mps = 0.0f;
   // The car's controls after the game's own input handling (assists, the
   // automatic clutch), so a pad, a wheel and the keyboard all report here.
   float throttle = 0.0f;   // 0-1
@@ -45,5 +48,13 @@ constexpr size_t kDashPacketSize = 311;
 constexpr uint8_t kDashNeutralGear = 11;
 
 std::array<uint8_t, kDashPacketSize> EncodeDash(const CarSample& sample, uint32_t timestamp_ms);
+
+// Forza Horizon 4 and 5 send the same fields with 12 more bytes between the
+// Sled block and the dash fields (324 bytes); tools read that layout under
+// their Forza Horizon profile.
+constexpr size_t kHorizonPacketSize = 324;
+constexpr size_t kHorizonGapOffset = 232;
+std::array<uint8_t, kHorizonPacketSize> EncodeHorizon(const CarSample& sample,
+                                                      uint32_t timestamp_ms);
 
 }  // namespace pinyon_shift::telemetry

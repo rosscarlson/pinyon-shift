@@ -15,6 +15,7 @@ constexpr size_t kTimestampMs = 4;       // u32
 constexpr size_t kEngineMaxRpm = 8;      // f32
 constexpr size_t kEngineIdleRpm = 12;    // f32
 constexpr size_t kCurrentEngineRpm = 16; // f32
+constexpr size_t kVelocityZ = 40;        // f32 m/s, the car's forward axis
 constexpr size_t kNormalizedSuspensionTravel = 68;  // 4 x f32, 0 extended, 1 compressed
 constexpr size_t kTireSlipRatio = 84;    // 4 x f32, FL FR RL RR
 constexpr size_t kWheelRotationSpeed = 100;  // 4 x f32 rad/s
@@ -72,6 +73,7 @@ std::array<uint8_t, kDashPacketSize> EncodeDash(const CarSample& sample, uint32_
   out.F32(kEngineMaxRpm, sample.redline_rpm);
   out.F32(kEngineIdleRpm, sample.idle_rpm);
   out.F32(kCurrentEngineRpm, sample.rpm);
+  out.F32(kVelocityZ, sample.velocity_forward_mps);
   for (size_t wheel = 0; wheel < 4; ++wheel) {
     const float ratio = sample.wheel_slip[wheel];
     const float angle = sample.wheel_slip_angle[wheel];
@@ -94,6 +96,15 @@ std::array<uint8_t, kDashPacketSize> EncodeDash(const CarSample& sample, uint32_
   out.U8(kGear, sample.gear < 0   ? uint8_t(0)
                 : sample.gear == 0 ? kDashNeutralGear
                                    : uint8_t(std::min(sample.gear, 10)));
+  return packet;
+}
+
+std::array<uint8_t, kHorizonPacketSize> EncodeHorizon(const CarSample& sample,
+                                                      uint32_t timestamp_ms) {
+  const auto dash = EncodeDash(sample, timestamp_ms);
+  std::array<uint8_t, kHorizonPacketSize> packet{};
+  std::copy(dash.begin(), dash.begin() + kHorizonGapOffset, packet.begin());
+  std::copy(dash.begin() + kHorizonGapOffset, dash.end(), packet.begin() + kHorizonGapOffset + 12);
   return packet;
 }
 
