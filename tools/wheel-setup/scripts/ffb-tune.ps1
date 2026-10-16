@@ -4,6 +4,7 @@
 #   powershell -ExecutionPolicy Bypass -File ffb-tune.ps1 -Rumble 0           # no kerb/impact vibration
 #   powershell -ExecutionPolicy Bypass -File ffb-tune.ps1 -Strength 30 -Scale 127
 #   powershell -ExecutionPolicy Bypass -File ffb-tune.ps1 -LogInputs on -Trace on  # log every wheel button/axis
+#   powershell -ExecutionPolicy Bypass -File ffb-tune.ps1 -Telemetry on -Probe on  # SimHub telemetry + probe recording
 # Options can be combined. A backup of the config is kept each time something changes.
 param(
     [string]$Install,
@@ -12,7 +13,9 @@ param(
     [ValidateRange(0, 100)][int]$Strength = -1,
     [ValidateRange(1, 1000000)][int]$Scale = 0,
     [ValidateSet('on', 'off')][string]$Trace,
-    [ValidateSet('on', 'off')][string]$LogInputs
+    [ValidateSet('on', 'off')][string]$LogInputs,
+    [ValidateSet('on', 'off')][string]$Telemetry,
+    [ValidateSet('on', 'off')][string]$Probe
 )
 $ErrorActionPreference = 'Stop'
 # The launcher's install folder (its choice in install-root.txt, else its default) and the newest
@@ -34,6 +37,8 @@ if ($Strength -ge 0) { $changes['wheel_ffb_strength'] = "$Strength" }
 if ($Scale -gt 0) { $changes['wheel_ffb_magnitude_max'] = "$Scale" }
 if ($Trace) { $changes['wheel_ffb_trace'] = if ($Trace -eq 'on') { 'true' } else { 'false' } }
 if ($LogInputs) { $changes['wheel_log_inputs'] = if ($LogInputs -eq 'on') { 'true' } else { 'false' } }
+if ($Telemetry) { $changes['telemetry_udp'] = if ($Telemetry -eq 'on') { 'true' } else { 'false' } }
+if ($Probe) { $changes['telemetry_probe'] = if ($Probe -eq 'on') { 'true' } else { 'false' } }
 
 if ($changes.Count -gt 0) {
     if (Get-Process -Name pinyon_shift -ErrorAction SilentlyContinue) { throw 'Close Pinyon Shift first, then run this again.' }

@@ -46,8 +46,18 @@ if ($trace) {
     $summary.Add("FFB trace: $($trace.Name), $([math]::Round($trace.Length / 1KB)) KB")
 } else { $summary.Add('FFB trace: none (turn on Record force feedback trace)') }
 
+# The newest telemetry probe (telemetry_probe): its fast file and its -block file.
+$probe = Get-ChildItem $logs -Filter 'telemetry-probe-*.csv' -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -notlike '*-block.csv' } | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+if ($probe) {
+    Copy-Item $probe.FullName $work
+    $block = Join-Path $logs ($probe.BaseName + '-block.csv')
+    if (Test-Path $block) { Copy-Item $block $work }
+    $summary.Add("Telemetry probe: $($probe.Name), $([math]::Round($probe.Length / 1KB)) KB")
+}
+
 if (Test-Path $config) {
-    Select-String -Path $config -Pattern '^\s*(wheel_|input_backend|pad_rumble|pad_remap)' | ForEach-Object { $_.Line } |
+    Select-String -Path $config -Pattern '^\s*(wheel_|input_backend|pad_rumble|pad_remap|telemetry_)' | ForEach-Object { $_.Line } |
         Set-Content (Join-Path $work 'config-wheel-lines.toml') -Encoding utf8
 } else { $summary.Add("Config not found: $config") }
 
