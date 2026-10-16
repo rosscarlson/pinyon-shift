@@ -350,12 +350,9 @@ std::unique_ptr<MenuScreen> SettingsPages::Display() {
                           {"2", {{"monitor", "2"}}},
                           {"3", {{"monitor", "3"}}}}));
   std::vector<Choice> sizes = {{"DEFAULT", {{"window_width", "0"}, {"window_height", "0"}}}};
-  // 16:9 sizes, then 21:9, 32:9 and 64:9 at 1440 for ULTRAWIDE > WIDER VIEW
-  // (a 64:9 window is two 32:9 displays spanned as one).
   for (const auto& [width, height] : {std::pair{1280, 720}, std::pair{1600, 900},
                                       std::pair{1920, 1080}, std::pair{2560, 1440},
-                                      std::pair{3840, 2160}, std::pair{3440, 1440},
-                                      std::pair{5120, 1440}, std::pair{10240, 1440}}) {
+                                      std::pair{3840, 2160}}) {
     sizes.push_back({std::to_string(width) + "X" + std::to_string(height),
                      {{"window_width", std::to_string(width)},
                       {"window_height", std::to_string(height)}}});
