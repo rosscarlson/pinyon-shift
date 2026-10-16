@@ -27,7 +27,7 @@ if (Test-Path $built) { $summary.Add('SDK last built: ' + (Get-Content $built -R
 $runtime = Join-Path $logs 'runtime.log'
 if (Test-Path $runtime) {
     Select-String -Path $runtime -Pattern 'Wheel FFB|SDL wheel|SDL input|FFB trace|XInputd|STUB|Window closing|Title terminated|error' |
-        ForEach-Object { $_.Line } | Select-Object -Last 400 | Set-Content (Join-Path $work 'runtime-wheel-lines.log') -Encoding utf8
+        ForEach-Object { $_.Line } | Select-Object -Last 5000 | Set-Content (Join-Path $work 'runtime-wheel-lines.log') -Encoding utf8
     Get-Content $runtime -Tail 150 | Set-Content (Join-Path $work 'runtime-tail.log') -Encoding utf8
     $summary.Add("runtime.log: $((Get-Item $runtime).LastWriteTime)")
 } else { $summary.Add('runtime.log: not found') }
@@ -39,7 +39,7 @@ if ($trace) {
 } else { $summary.Add('FFB trace: none (turn on Record force feedback trace)') }
 
 if (Test-Path $config) {
-    Select-String -Path $config -Pattern '^\s*(wheel_|input_backend|pad_rumble)' | ForEach-Object { $_.Line } |
+    Select-String -Path $config -Pattern '^\s*(wheel_|input_backend|pad_rumble|pad_remap)' | ForEach-Object { $_.Line } |
         Set-Content (Join-Path $work 'config-wheel-lines.toml') -Encoding utf8
 } else { $summary.Add("Config not found: $config") }
 
