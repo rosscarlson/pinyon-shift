@@ -460,7 +460,16 @@ public partial class WheelSetupView : UserControl
         Advance();
     }
 
-    private void StepSkip_Click(object sender, RoutedEventArgs e) => Advance();
+    private void StepSkip_Click(object sender, RoutedEventArgs e)
+    {
+        // No H-shifter: skipping 1st gear while it is unbound skips the other gears too.
+        if (guided && capture?.Item is { Key: BindingSet.FirstGear, IsBound: false })
+        {
+            EndCapture(finished: true);
+            return;
+        }
+        Advance();
+    }
 
     private void StepUnbind_Click(object sender, RoutedEventArgs e)
     {
@@ -638,6 +647,8 @@ public partial class WheelSetupView : UserControl
         DamperSlider.Value = set.FfbDamper;
         FrictionSlider.Value = set.FfbFriction;
         InertiaSlider.Value = set.FfbInertia;
+        RumbleEngineSlider.Value = set.FfbRumbleEngine;
+        RumbleRoadSlider.Value = set.FfbRumbleRoad;
         Wheel900Box.IsChecked = set.Wheel900;
         FfbInvertBox.IsChecked = set.FfbInvert;
         FfbTraceBox.IsChecked = set.FfbTrace;
@@ -663,6 +674,8 @@ public partial class WheelSetupView : UserControl
         set.FfbDamper = (int)DamperSlider.Value;
         set.FfbFriction = (int)FrictionSlider.Value;
         set.FfbInertia = (int)InertiaSlider.Value;
+        set.FfbRumbleEngine = (int)RumbleEngineSlider.Value;
+        set.FfbRumbleRoad = (int)RumbleRoadSlider.Value;
         set.Wheel900 = Wheel900Box.IsChecked == true;
         set.FfbInvert = FfbInvertBox.IsChecked == true;
         set.FfbTrace = FfbTraceBox.IsChecked == true;
@@ -814,6 +827,8 @@ public partial class WheelSetupView : UserControl
         DamperValue.Text = $"{(int)DamperSlider.Value} %";
         FrictionValue.Text = $"{(int)FrictionSlider.Value} %";
         InertiaValue.Text = $"{(int)InertiaSlider.Value} %";
+        RumbleEngineValue.Text = $"{(int)RumbleEngineSlider.Value} %";
+        RumbleRoadValue.Text = $"{(int)RumbleRoadSlider.Value} %";
         ScaleValue.Text = $"{(int)ScaleSlider.Value} %";
         SteerDeadzoneValue.Text = $"{(int)SteerDeadzoneSlider.Value} %";
         foreach (var (slider, text) in new[] {
@@ -939,6 +954,8 @@ public partial class WheelSetupView : UserControl
             await Press(() => Btn(pedals, 0, true), () => Btn(pedals, 0, false));
             foreach (byte dir in new byte[] { WheelMath.HatUp, WheelMath.HatDown, WheelMath.HatLeft, WheelMath.HatRight })
                 await Press(() => Hat(wheel, dir), () => Hat(wheel, 0));
+            StepSkip_Click(this, new RoutedEventArgs());  // no H-shifter: skips every gear
+            await Task.Delay(150);
             log.Add("guided finished: " + (capture == null));
 
             // The live view with some input held.

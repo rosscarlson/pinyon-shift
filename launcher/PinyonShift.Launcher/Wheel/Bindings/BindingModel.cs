@@ -169,7 +169,28 @@ public sealed class BindingSet
         Button("DOWN", "D-pad down", null),
         Button("LEFT", "D-pad left", null),
         Button("RIGHT", "D-pad right", null),
+        // An H-pattern shifter, last so a wheel without one skips them all at 1st gear. The
+        // game reads the held gear in its wheel path (found by Ty Crowther, pinyon-shift PR #605).
+        Gear("GEAR1", "1st", "1",
+             "Put the H-shifter in 1st gear. No H-shifter? Click Skip to finish the setup."),
+        Gear("GEAR2", "2nd", "2"),
+        Gear("GEAR3", "3rd", "3"),
+        Gear("GEAR4", "4th", "4"),
+        Gear("GEAR5", "5th", "5"),
+        Gear("GEAR6", "6th", "6"),
+        Gear("GEAR7", "7th", "7", "Put the H-shifter in 7th gear, or click Skip if it has no 7th."),
+        Gear("REVERSE", "Reverse", "R"),
     ];
+
+    /// <summary>The first gear step: skipping it unbound ends the guided setup.</summary>
+    public const string FirstGear = "GEAR1";
+
+    private static BindingItem Gear(string key, string gear, string chip, string? prompt = null) => new()
+    {
+        Key = key, Label = $"Shifter {gear}", Kind = BindKind.Button, Chip = chip,
+        Prompt = prompt ?? $"Put the H-shifter in {gear.ToLowerInvariant()}" +
+                 (key == "REVERSE" ? "." : " gear."),
+    };
 
     private static BindingItem Button(string key, string xbox, string? role, string? note = null) => new()
     {
@@ -199,6 +220,9 @@ public sealed class BindingSet
     public int FfbDamper { get; set; } = 100;
     public int FfbFriction { get; set; } = 100;
     public int FfbInertia { get; set; } = 100;
+    /// <summary>Shares of the game's rumble per motor: FH1's right motor is the engine, the left the road.</summary>
+    public int FfbRumbleEngine { get; set; } = 100;
+    public int FfbRumbleRoad { get; set; } = 100;
     /// <summary>FH1's effect values are bytes (its spring sent coefficient 63, saturation 127).</summary>
     public int FfbMagnitudeMax { get; set; } = 127;
     public bool Wheel900 { get; set; } = true;
@@ -307,6 +331,8 @@ public sealed class BindingSet
         FfbDamper = Math.Clamp(Int("wheel_ffb_damper", 100), 0, 200);
         FfbFriction = Math.Clamp(Int("wheel_ffb_friction", 100), 0, 200);
         FfbInertia = Math.Clamp(Int("wheel_ffb_inertia", 100), 0, 200);
+        FfbRumbleEngine = Math.Clamp(Int("wheel_ffb_rumble_engine", 100), 0, 100);
+        FfbRumbleRoad = Math.Clamp(Int("wheel_ffb_rumble_road", 100), 0, 100);
         FfbMagnitudeMax = Math.Clamp(Int("wheel_ffb_magnitude_max", 127), 1, 1000000);
         Wheel900 = Bool("wheel_900_degree", true);
         SteeringScale = Math.Clamp(Int("wheel_steering_scale", 100), 10, 1000);
@@ -477,6 +503,8 @@ public sealed class BindingSet
             ("wheel_ffb_damper", FfbDamper.ToString(CultureInfo.InvariantCulture)),
             ("wheel_ffb_friction", FfbFriction.ToString(CultureInfo.InvariantCulture)),
             ("wheel_ffb_inertia", FfbInertia.ToString(CultureInfo.InvariantCulture)),
+            ("wheel_ffb_rumble_engine", FfbRumbleEngine.ToString(CultureInfo.InvariantCulture)),
+            ("wheel_ffb_rumble_road", FfbRumbleRoad.ToString(CultureInfo.InvariantCulture)),
             ("wheel_ffb_magnitude_max", FfbMagnitudeMax.ToString(CultureInfo.InvariantCulture)),
             ("wheel_900_degree", Wheel900 ? "true" : "false"),
             ("wheel_steering_scale", SteeringScale.ToString(CultureInfo.InvariantCulture)),
